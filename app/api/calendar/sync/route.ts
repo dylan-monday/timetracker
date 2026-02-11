@@ -93,7 +93,8 @@ async function fetchGoogleCalendarList(accessToken: string): Promise<NonNullable
     headers: { Authorization: `Bearer ${accessToken}` }
   });
   if (!response.ok) {
-    throw new Error("Google Calendar list request failed.");
+    const raw = await response.text();
+    throw new Error(`Google Calendar list request failed (${response.status}): ${raw.slice(0, 280)}`);
   }
   const payload = (await response.json()) as GoogleCalendarList;
   return payload.items ?? [];
@@ -121,7 +122,10 @@ async function fetchGoogleEventsForCalendar(args: {
   );
 
   if (!response.ok) {
-    throw new Error(`Google events request failed for calendar ${args.calendarId}.`);
+    const raw = await response.text();
+    throw new Error(
+      `Google events request failed for calendar ${args.calendarId} (${response.status}): ${raw.slice(0, 280)}`
+    );
   }
 
   const payload = (await response.json()) as GoogleEventsList;
