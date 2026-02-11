@@ -827,10 +827,10 @@ export function WeekGrid() {
       </div>
 
       <div className="py-2 text-center">
-        <p className="font-display text-xl leading-tight text-black/24 italic sm:text-2xl">
+        <p className="font-display text-xl leading-tight text-[#8f959b]/45 italic sm:text-2xl">
           “{reflectionQuote.text}”
         </p>
-        <p className="font-display mt-1 text-sm text-black/22 sm:text-base">- {reflectionQuote.author}</p>
+        <p className="font-display mt-1 text-sm text-[#8f959b]/38 sm:text-base">- {reflectionQuote.author}</p>
       </div>
     </section>
   );

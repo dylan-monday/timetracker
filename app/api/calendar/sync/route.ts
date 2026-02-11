@@ -44,6 +44,14 @@ function normalizeText(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9@\s.-]/g, " ");
 }
 
+function isAllowedWorkCalendarId(calendarId: string): boolean {
+  const normalizedId = calendarId.toLowerCase();
+  return (
+    normalizedId.endsWith("@mondayandpartners.com") ||
+    normalizedId.endsWith("@natrx.io")
+  );
+}
+
 function roundToNearest15(minutes: number): number {
   if (minutes <= 0) return 0;
   return Math.max(15, Math.round(minutes / 15) * 15);
@@ -293,15 +301,7 @@ export async function POST(request: Request) {
     const calendars = await fetchGoogleCalendarList(providerAccessToken);
     const allowedCalendars = calendars.filter((calendar) => {
       if (!calendar.id) return false;
-      if (calendar.primary) return true;
-      const normalizedId = calendar.id.toLowerCase();
-      const normalizedSummary = (calendar.summary ?? "").toLowerCase();
-      return (
-        normalizedId.endsWith("@mondayandpartners.com") ||
-        normalizedId.endsWith("@natrx.io") ||
-        normalizedSummary.includes("monday") ||
-        normalizedSummary.includes("natrx")
-      );
+      return isAllowedWorkCalendarId(calendar.id);
     });
 
     let imported = 0;
@@ -319,6 +319,8 @@ export async function POST(request: Request) {
         if (event.status === "cancelled") continue;
         const parsed = parseGoogleEvent(event);
         if (!parsed) continue;
+        const normalizedTitle = parsed.title.trim().toLowerCase();
+        if (normalizedTitle === "busy" || normalizedTitle === "private event") continue;
 
         const searchableText = normalizeText(
           [
