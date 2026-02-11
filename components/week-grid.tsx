@@ -102,6 +102,10 @@ export function WeekGrid() {
   const [quickProject, setQuickProject] = useState("");
   const [quickTags, setQuickTags] = useState("");
   const [savedQuickTags, setSavedQuickTags] = useState<string[]>([]);
+  const [showDraftCreateModal, setShowDraftCreateModal] = useState(false);
+  const [draftCreateEntryId, setDraftCreateEntryId] = useState<string | null>(null);
+  const [draftCreateClient, setDraftCreateClient] = useState("");
+  const [draftCreateProject, setDraftCreateProject] = useState("");
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -412,33 +416,51 @@ export function WeekGrid() {
     if (!supabase || !user) return;
 
     if (selectedProjectId === "__new__") {
-      const clientName = window.prompt("New client name");
-      if (!clientName?.trim()) return;
-
-      const projectName = window.prompt(`New project name for ${clientName.trim()}`);
-      if (!projectName?.trim()) return;
-
-      setDraftActionId(entryId);
-      setError(null);
-
-      try {
-        const created = await ensureClientAndProject({
-          supabase,
-          userId: user.id,
-          clientName: clientName.trim(),
-          projectName: projectName.trim()
-        });
-        await handleDraftApprove(entryId, created.id);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Could not create project for draft.");
-      } finally {
-        setDraftActionId(null);
-      }
-
+      const draft = draftEntries.find((item) => item.id === entryId);
+      setDraftCreateEntryId(entryId);
+      setDraftCreateClient(draft?.clientName && draft.clientName !== "Unassigned client" ? draft.clientName : "");
+      setDraftCreateProject("");
+      setShowDraftCreateModal(true);
       return;
     }
 
     await handleDraftApprove(entryId, selectedProjectId);
+  };
+
+  const handleDraftCreateSave = async () => {
+    if (!supabase || !user || !draftCreateEntryId) return;
+    if (!draftCreateClient.trim() || !draftCreateProject.trim()) {
+      setError("Client and project are required.");
+      return;
+    }
+
+    setDraftActionId(draftCreateEntryId);
+    setError(null);
+
+    try {
+      const created = await ensureClientAndProject({
+        supabase,
+        userId: user.id,
+        clientName: draftCreateClient.trim(),
+        projectName: draftCreateProject.trim()
+      });
+
+      await approveDraftEntry({
+        supabase,
+        entryId: draftCreateEntryId,
+        projectId: created.id
+      });
+
+      setShowDraftCreateModal(false);
+      setDraftCreateEntryId(null);
+      setDraftCreateClient("");
+      setDraftCreateProject("");
+      await refreshWeekData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not create project for draft.");
+    } finally {
+      setDraftActionId(null);
+    }
   };
 
   const handleCalendarSync = async () => {
@@ -747,6 +769,79 @@ export function WeekGrid() {
                 disabled={saving || !quickClient.trim() || !quickProject.trim()}
               >
                 Save line
+              </button>
+            </div>
+          </aside>
+        </div>
+      ) : null}
+
+      {showDraftCreateModal ? (
+        <div
+          className="fixed inset-0 z-20 bg-black/18 backdrop-blur-[1px]"
+          onClick={() => {
+            setShowDraftCreateModal(false);
+            setDraftCreateEntryId(null);
+          }}
+        >
+          <aside
+            className="fixed inset-x-0 bottom-0 z-30 rounded-t-3xl border border-black/10 bg-panel p-4 shadow-[0_-20px_50px_rgba(0,0,0,0.14)] sm:inset-x-auto sm:left-1/2 sm:mx-auto sm:mb-6 sm:w-full sm:max-w-xl sm:-translate-x-1/2 sm:rounded-3xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 className="text-base font-semibold">Create project for draft</h2>
+            <p className="mt-1 text-sm text-muted">
+              Choose an existing client or type a new one, then add the project.
+            </p>
+
+            <div className="mt-4 space-y-3">
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted">Client</span>
+                <input
+                  list="draft-client-options"
+                  type="text"
+                  value={draftCreateClient}
+                  onChange={(event) => setDraftCreateClient(event.target.value)}
+                  placeholder="Select existing or create new"
+                  className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-black/30"
+                />
+                <datalist id="draft-client-options">
+                  {clients.map((client) => (
+                    <option key={client.id} value={client.name} />
+                  ))}
+                </datalist>
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted">Project</span>
+                <input
+                  type="text"
+                  value={draftCreateProject}
+                  onChange={(event) => setDraftCreateProject(event.target.value)}
+                  placeholder="New project name"
+                  className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-black/30"
+                />
+              </label>
+            </div>
+
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                className="flex-1 rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium"
+                onClick={() => {
+                  setShowDraftCreateModal(false);
+                  setDraftCreateEntryId(null);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="flex-1 rounded-full bg-ink px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                onClick={() => {
+                  void handleDraftCreateSave();
+                }}
+                disabled={saving || !draftCreateClient.trim() || !draftCreateProject.trim()}
+              >
+                Create + approve
               </button>
             </div>
           </aside>
