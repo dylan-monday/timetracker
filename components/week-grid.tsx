@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, RefreshCw, Sparkles } from "lucide-react";
+import { Plus, RefreshCw, Sparkles, Trash2 } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 import { makeWeekDays } from "@/lib/mock-data";
 import { missingMinutes, missingState, targetWorkingMinutes } from "@/lib/missing-time";
 import {
   approveDraftEntry,
+  deleteLineEntriesForWeek,
   ensureClientAndProject,
   fetchClientsAndProjects,
   fetchWeekDraftEntries,
@@ -19,6 +20,7 @@ import type { ClientOption, DraftEntry, ProjectOption, WeekLine } from "@/lib/ty
 
 const BUSINESS_DAY_INDEXES = [1, 2, 3, 4, 5];
 const ALL_DAY_INDEXES = [1, 2, 3, 4, 5, 6, 7];
+const WEEK_LINE_STORAGE_PREFIX = "mp-time-week-lines";
 
 function stateClass(state: "ok" | "attention" | "gap"): string {
   if (state === "ok") return "bg-accent/40 text-ink";
@@ -48,8 +50,43 @@ export function WeekGrid() {
   const [saving, setSaving] = useState(false);
   const [draftActionId, setDraftActionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pinnedProjectIds, setPinnedProjectIds] = useState<string[]>([]);
 
   const visibleDayIndexes = showWeekends ? ALL_DAY_INDEXES : BUSINESS_DAY_INDEXES;
+  const weekKey = weekDays[0]?.isoDate ?? "week";
+
+  const savePinnedProjectIds = useCallback(
+    (next: string[]) => {
+      setPinnedProjectIds(next);
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(
+          `${WEEK_LINE_STORAGE_PREFIX}:${weekKey}`,
+          JSON.stringify(Array.from(new Set(next)))
+        );
+      }
+    },
+    [weekKey]
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = window.localStorage.getItem(`${WEEK_LINE_STORAGE_PREFIX}:${weekKey}`);
+    if (!raw) {
+      setPinnedProjectIds([]);
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        setPinnedProjectIds(parsed.filter((item) => typeof item === "string"));
+      } else {
+        setPinnedProjectIds([]);
+      }
+    } catch {
+      setPinnedProjectIds([]);
+    }
+  }, [weekKey]);
 
   const refreshWeekData = useCallback(async () => {
     if (!user || !supabase) return;
@@ -60,7 +97,7 @@ export function WeekGrid() {
     try {
       const { clients: dbClients, projects: dbProjects } = await fetchClientsAndProjects(supabase);
       const [dbLines, dbDrafts] = await Promise.all([
-        fetchWeekLines(supabase, dbProjects),
+        fetchWeekLines(supabase, dbProjects, pinnedProjectIds),
         fetchWeekDraftEntries(supabase)
       ]);
 
@@ -75,7 +112,7 @@ export function WeekGrid() {
     } finally {
       setLoading(false);
     }
-  }, [supabase, user]);
+  }, [pinnedProjectIds, supabase, user]);
 
   useEffect(() => {
     void refreshWeekData();
@@ -166,7 +203,14 @@ export function WeekGrid() {
 
       setLines((current) => {
         const exists = current.some((line) => line.projectId === project.id);
-        if (exists) return current;
+        if (exists) {
+          if (!pinnedProjectIds.includes(project.id)) {
+            savePinnedProjectIds([...pinnedProjectIds, project.id]);
+          }
+          return current;
+        }
+
+        savePinnedProjectIds([...pinnedProjectIds, project.id]);
 
         return [
           ...current,
@@ -189,6 +233,40 @@ export function WeekGrid() {
       await refreshWeekData();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not add line.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteLine = async (line: WeekLine) => {
+    if (!user || !supabase || !line.projectId) return;
+
+    const confirmed = window.confirm(
+      `Delete "${line.projectName}" from this week? This removes its time entries for this week only.`
+    );
+    if (!confirmed) return;
+
+    const weekStartISO = weekDays[0]?.isoDate;
+    const weekEndISO = weekDays[6]?.isoDate;
+    if (!weekStartISO || !weekEndISO) return;
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      await deleteLineEntriesForWeek({
+        supabase,
+        userId: user.id,
+        projectId: line.projectId,
+        weekStartISO,
+        weekEndISO
+      });
+
+      const nextPinned = pinnedProjectIds.filter((id) => id !== line.projectId);
+      savePinnedProjectIds(nextPinned);
+      await refreshWeekData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not delete line.");
     } finally {
       setSaving(false);
     }
@@ -285,7 +363,20 @@ export function WeekGrid() {
               {lines.map((line) => (
                 <tr key={line.id} className="rounded-xl bg-white/90 shadow-[0_1px_0_rgba(0,0,0,0.05)]">
                   <td className="rounded-l-xl px-3 py-3 align-middle">
-                    <p className="text-sm font-medium text-ink">{line.projectName}</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium text-ink">{line.projectName}</p>
+                      <button
+                        type="button"
+                        className="rounded-full border border-black/10 bg-white p-1.5 text-muted transition hover:border-black/20 hover:text-ink"
+                        onClick={() => {
+                          void handleDeleteLine(line);
+                        }}
+                        title="Delete this line from week"
+                        disabled={saving}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                     <p className="text-xs text-muted">
                       {line.clientName}
                       {line.isDraft ? " • draft approval" : ""}

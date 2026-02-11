@@ -55,6 +55,7 @@ export async function fetchClientsAndProjects(supabase: SupabaseClient): Promise
 export async function fetchWeekLines(
   supabase: SupabaseClient,
   projects: ProjectOption[],
+  pinnedProjectIds: string[] = [],
   reference = new Date()
 ): Promise<WeekLine[]> {
   const window = getWeekWindow(reference);
@@ -70,8 +71,11 @@ export async function fetchWeekLines(
   const projectById = new Map(projects.map((project) => [project.id, project]));
   const lineByProject = new Map<string, WeekLine>();
 
-  // Show active projects as rows even before they have any entries.
-  for (const project of projects) {
+  // Show explicitly pinned week lines even before they have entries.
+  for (const projectId of pinnedProjectIds) {
+    const project = projectById.get(projectId);
+    if (!project) continue;
+
     lineByProject.set(project.id, {
       id: `line-${project.id}`,
       projectId: project.id,
@@ -100,6 +104,26 @@ export async function fetchWeekLines(
   return Array.from(lineByProject.values()).sort((a, b) =>
     `${a.clientName} ${a.projectName}`.localeCompare(`${b.clientName} ${b.projectName}`)
   );
+}
+
+export async function deleteLineEntriesForWeek(params: {
+  supabase: SupabaseClient;
+  userId: string;
+  projectId: string;
+  weekStartISO: string;
+  weekEndISO: string;
+}): Promise<void> {
+  const { supabase, userId, projectId, weekStartISO, weekEndISO } = params;
+
+  const { error } = await supabase
+    .from("time_entries")
+    .delete()
+    .eq("owner_id", userId)
+    .eq("project_id", projectId)
+    .gte("entry_date", weekStartISO)
+    .lte("entry_date", weekEndISO);
+
+  if (error) throw error;
 }
 
 export async function upsertDailyManualEntry(params: {
