@@ -39,6 +39,11 @@ function stateClass(state: "ok" | "attention" | "gap"): string {
   return "bg-danger/35 text-ink";
 }
 
+function isWeekendIsoDate(isoDate: string): boolean {
+  const day = new Date(`${isoDate}T00:00:00`).getDay();
+  return day === 0 || day === 6;
+}
+
 export function WeekGrid() {
   const { supabase, user } = useAuth();
   const weekDays = useMemo(() => makeWeekDays(), []);
@@ -399,9 +404,13 @@ export function WeekGrid() {
                   const day = weekDays[dayIndex - 1];
                   const minutes = totalsByDay[dayIndex] ?? 0;
                   const status = missingState(minutes);
+                  const isWeekend = isWeekendIsoDate(day.isoDate);
 
                   return (
-                    <th key={day.isoDate} className="px-3 py-2">
+                    <th
+                      key={day.isoDate}
+                      className={`px-3 py-2 ${isWeekend ? "rounded-xl bg-black/[0.03]" : ""}`}
+                    >
                       <div className="mb-1 flex items-center justify-between">
                         <span>
                           {day.label} {day.day}
@@ -446,12 +455,17 @@ export function WeekGrid() {
                     </p>
                   </td>
                   {visibleDayIndexes.map((dayIndex) => {
+                    const day = weekDays[dayIndex - 1];
+                    const isWeekend = isWeekendIsoDate(day.isoDate);
                     const isActive =
                       activeCell?.lineId === line.id && activeCell?.dayIndex === dayIndex;
                     const value = line.cells[String(dayIndex)] ?? 0;
 
                     return (
-                      <td key={`${line.id}-${dayIndex}`} className="px-3 py-2">
+                      <td
+                        key={`${line.id}-${dayIndex}`}
+                        className={`px-3 py-2 ${isWeekend ? "bg-black/[0.03]" : ""}`}
+                      >
                         {isActive ? (
                           <input
                             autoFocus
