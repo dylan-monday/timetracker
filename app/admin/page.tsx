@@ -33,6 +33,8 @@ export default function AdminPage() {
 
     setLoading(true);
     setError(null);
+    const isEmailAdmin = user.email?.toLowerCase() === "dylan@mondayandpartners.com";
+    setIsAdmin(isEmailAdmin);
 
     try {
       const [
@@ -41,7 +43,7 @@ export default function AdminPage() {
         { data: dbProjects, error: projectsError },
         { data: dbFeedSources, error: feedSourcesError }
       ] = await Promise.all([
-          supabase.from("profiles").select("role").eq("id", user.id).single(),
+          supabase.from("profiles").select("role").eq("id", user.id).maybeSingle(),
           supabase.from("clients").select("id,name,kind").eq("active", true).order("name"),
           supabase
             .from("projects")
@@ -54,13 +56,12 @@ export default function AdminPage() {
             .order("created_at", { ascending: true })
         ]);
 
-      if (profileError) throw profileError;
+      if (profileError && profileError.code !== "PGRST116") throw profileError;
       if (clientsError) throw clientsError;
       if (projectsError) throw projectsError;
       if (feedSourcesError) throw feedSourcesError;
 
-      const isEmailAdmin = user.email?.toLowerCase() === "dylan@mondayandpartners.com";
-      setIsAdmin(profile.role === "admin" || isEmailAdmin);
+      setIsAdmin(profile?.role === "admin" || isEmailAdmin);
 
       const mappedClients = (dbClients ?? []) as ClientOption[];
       const mappedProjects = (dbProjects ?? []).map((project) => ({
