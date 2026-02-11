@@ -70,23 +70,25 @@ export async function fetchWeekLines(
   const projectById = new Map(projects.map((project) => [project.id, project]));
   const lineByProject = new Map<string, WeekLine>();
 
+  // Show active projects as rows even before they have any entries.
+  for (const project of projects) {
+    lineByProject.set(project.id, {
+      id: `line-${project.id}`,
+      projectId: project.id,
+      clientId: project.clientId,
+      clientName: project.clientName,
+      projectName: project.name,
+      isDraft: false,
+      cells: {}
+    });
+  }
+
   for (const entry of entries ?? []) {
     const project = projectById.get(entry.project_id);
     if (!project) continue;
 
-    let line = lineByProject.get(project.id);
-    if (!line) {
-      line = {
-        id: `line-${project.id}`,
-        projectId: project.id,
-        clientId: project.clientId,
-        clientName: project.clientName,
-        projectName: project.name,
-        isDraft: false,
-        cells: {}
-      };
-      lineByProject.set(project.id, line);
-    }
+    const line = lineByProject.get(project.id);
+    if (!line) continue;
 
     const dayIndex = dayIndexFromISO(entry.entry_date);
     line.cells[String(dayIndex)] = (line.cells[String(dayIndex)] ?? 0) + entry.rounded_minutes;

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Plus, RefreshCw, Sparkles } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
-import { demoWeekLines, makeWeekDays } from "@/lib/mock-data";
+import { makeWeekDays } from "@/lib/mock-data";
 import { missingMinutes, missingState, targetWorkingMinutes } from "@/lib/missing-time";
 import {
   approveDraftEntry,
@@ -66,11 +66,12 @@ export function WeekGrid() {
 
       setClients(dbClients);
       setProjects(dbProjects);
-      setLines(dbLines.length ? dbLines : demoWeekLines);
+      setLines(dbLines);
       setDraftEntries(dbDrafts);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load data.");
-      setLines(demoWeekLines);
+      setLines([]);
+      setDraftEntries([]);
     } finally {
       setLoading(false);
     }
