@@ -59,7 +59,8 @@ export default function AdminPage() {
       if (projectsError) throw projectsError;
       if (feedSourcesError) throw feedSourcesError;
 
-      setIsAdmin(profile.role === "admin");
+      const isEmailAdmin = user.email?.toLowerCase() === "dylan@mondayandpartners.com";
+      setIsAdmin(profile.role === "admin" || isEmailAdmin);
 
       const mappedClients = (dbClients ?? []) as ClientOption[];
       const mappedProjects = (dbProjects ?? []).map((project) => ({
