@@ -5,6 +5,15 @@ import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/components/auth-provider";
 import type { CalendarFeedSource, ClientOption, ProjectOption } from "@/lib/types";
 
+function toErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "object" && error !== null && "message" in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string" && message.trim()) return message;
+  }
+  return fallback;
+}
+
 export default function AdminPage() {
   const { supabase, user } = useAuth();
 
@@ -88,7 +97,7 @@ export default function AdminPage() {
         setNewProjectClientId(mappedClients[0].id);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load admin data.");
+      setError(toErrorMessage(err, "Could not load admin data."));
     } finally {
       setLoading(false);
     }
@@ -122,7 +131,7 @@ export default function AdminPage() {
       setNewClient("");
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not add client.");
+      setError(toErrorMessage(err, "Could not add client."));
     } finally {
       setSaving(false);
     }
@@ -139,7 +148,7 @@ export default function AdminPage() {
       if (updateError) throw updateError;
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not archive client.");
+      setError(toErrorMessage(err, "Could not archive client."));
     } finally {
       setSaving(false);
     }
@@ -164,7 +173,7 @@ export default function AdminPage() {
       setNewProjectName("");
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not add project.");
+      setError(toErrorMessage(err, "Could not add project."));
     } finally {
       setSaving(false);
     }
@@ -181,7 +190,7 @@ export default function AdminPage() {
       if (updateError) throw updateError;
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not archive project.");
+      setError(toErrorMessage(err, "Could not archive project."));
     } finally {
       setSaving(false);
     }
@@ -211,7 +220,7 @@ export default function AdminPage() {
       setMergeTargetProjectId("");
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not merge projects.");
+      setError(toErrorMessage(err, "Could not merge projects."));
     } finally {
       setSaving(false);
     }
@@ -241,7 +250,7 @@ export default function AdminPage() {
       setNewFeedUrl("");
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not add calendar source.");
+      setError(toErrorMessage(err, "Could not add calendar source."));
     } finally {
       setSaving(false);
     }
@@ -262,7 +271,7 @@ export default function AdminPage() {
       if (updateError) throw updateError;
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not update calendar source.");
+      setError(toErrorMessage(err, "Could not update calendar source."));
     } finally {
       setSaving(false);
     }
@@ -279,7 +288,7 @@ export default function AdminPage() {
       if (deleteError) throw deleteError;
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not remove calendar source.");
+      setError(toErrorMessage(err, "Could not remove calendar source."));
     } finally {
       setSaving(false);
     }
