@@ -59,8 +59,7 @@ create table if not exists public.clients (
   kind public.client_kind not null default 'external',
   active boolean not null default true,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  unique (owner_id, lower(name))
+  updated_at timestamptz not null default now()
 );
 
 create table if not exists public.projects (
@@ -72,8 +71,7 @@ create table if not exists public.projects (
   budget_cents integer,
   merged_into_project_id uuid references public.projects(id),
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  unique (owner_id, client_id, lower(name))
+  updated_at timestamptz not null default now()
 );
 
 create table if not exists public.project_merge_events (
@@ -117,6 +115,17 @@ create table if not exists public.calendar_connections (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (owner_id, provider, provider_user_id)
+);
+
+create table if not exists public.calendar_feed_sources (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null references public.profiles(id) on delete cascade,
+  name text not null,
+  feed_url text not null,
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (owner_id, feed_url)
 );
 
 create table if not exists public.calendar_events (
@@ -169,6 +178,8 @@ create index if not exists idx_time_entries_owner_date on public.time_entries(ow
 create index if not exists idx_time_entries_owner_project_date on public.time_entries(owner_id, project_id, entry_date);
 create index if not exists idx_projects_owner_client on public.projects(owner_id, client_id);
 create index if not exists idx_calendar_events_owner_start on public.calendar_events(owner_id, starts_at);
+create unique index if not exists uq_clients_owner_name_ci on public.clients(owner_id, lower(name));
+create unique index if not exists uq_projects_owner_client_name_ci on public.projects(owner_id, client_id, lower(name));
 
 create or replace function public.set_updated_at()
 returns trigger
@@ -193,6 +204,9 @@ create trigger set_time_entries_updated_at before update on public.time_entries
 for each row execute procedure public.set_updated_at();
 
 create trigger set_calendar_connections_updated_at before update on public.calendar_connections
+for each row execute procedure public.set_updated_at();
+
+create trigger set_calendar_feed_sources_updated_at before update on public.calendar_feed_sources
 for each row execute procedure public.set_updated_at();
 
 create trigger set_calendar_events_updated_at before update on public.calendar_events
@@ -243,15 +257,23 @@ language plpgsql
 as $$
 begin
   insert into public.clients (owner_id, name, kind, active)
-  values
-    (p_owner_id, 'Business Dev', 'internal', true),
-    (p_owner_id, 'Admin', 'internal', true),
-    (p_owner_id, 'Team', 'internal', true),
-    (p_owner_id, 'Learning', 'internal', true),
-    (p_owner_id, 'Recruiting', 'internal', true),
-    (p_owner_id, 'Marketing', 'internal', true),
-    (p_owner_id, 'Exercise', 'internal', true)
-  on conflict (owner_id, lower(name)) do nothing;
+  select p_owner_id, v.name, 'internal'::public.client_kind, true
+  from (
+    values
+      ('Business Dev'),
+      ('Admin'),
+      ('Team'),
+      ('Learning'),
+      ('Recruiting'),
+      ('Marketing'),
+      ('Exercise')
+  ) as v(name)
+  where not exists (
+    select 1
+    from public.clients c
+    where c.owner_id = p_owner_id
+      and lower(c.name) = lower(v.name)
+  );
 end;
 $$;
 
@@ -261,6 +283,7 @@ alter table public.projects enable row level security;
 alter table public.project_merge_events enable row level security;
 alter table public.time_entries enable row level security;
 alter table public.calendar_connections enable row level security;
+alter table public.calendar_feed_sources enable row level security;
 alter table public.calendar_events enable row level security;
 alter table public.recurring_mappings enable row level security;
 alter table public.email_jobs enable row level security;
@@ -292,6 +315,10 @@ for all using (auth.uid() = owner_id)
 with check (auth.uid() = owner_id);
 
 create policy "owner full access calendar connections" on public.calendar_connections
+for all using (auth.uid() = owner_id)
+with check (auth.uid() = owner_id);
+
+create policy "owner full access calendar feed sources" on public.calendar_feed_sources
 for all using (auth.uid() = owner_id)
 with check (auth.uid() = owner_id);
 

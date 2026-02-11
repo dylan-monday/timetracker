@@ -1,37 +1,8 @@
-import { createClient } from "@supabase/supabase-js";
 import { addDays, endOfDay, format, startOfDay, startOfWeek } from "date-fns";
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { createAdminSupabaseClient } from "@/lib/server/supabase-admin";
 import { requireEnv } from "@/lib/server/env";
-
-interface SyncRequestBody {
-  providerAccessToken?: string;
-}
-
-interface GoogleCalendarList {
-  items?: Array<{
-    id: string;
-    summary?: string;
-    primary?: boolean;
-    accessRole?: string;
-  }>;
-}
-
-interface GoogleEventsList {
-  items?: GoogleEventItem[];
-}
-
-interface GoogleEventItem {
-  id: string;
-  status?: string;
-  summary?: string;
-  description?: string;
-  htmlLink?: string;
-  organizer?: { email?: string };
-  attendees?: Array<{ email?: string }>;
-  start?: { dateTime?: string; date?: string };
-  end?: { dateTime?: string; date?: string };
-}
 
 interface CandidateProject {
   id: string;
@@ -40,21 +11,17 @@ interface CandidateProject {
   clients: { id: string; name: string } | { id: string; name: string }[] | null;
 }
 
+interface ParsedIcsEvent {
+  uid: string;
+  title: string;
+  description: string;
+  startsAt: Date;
+  endsAt: Date;
+  roundedMinutes: number;
+}
+
 function normalizeText(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9@\s.-]/g, " ");
-}
-
-function isAllowedWorkCalendarId(calendarId: string): boolean {
-  const normalizedId = calendarId.toLowerCase();
-  return (
-    normalizedId.endsWith("@mondayandpartners.com") ||
-    normalizedId.endsWith("@natrx.io")
-  );
-}
-
-function isPlaceholderEventTitle(title: string): boolean {
-  const normalizedTitle = title.trim().toLowerCase();
-  return normalizedTitle === "busy" || normalizedTitle === "private event";
 }
 
 function roundToNearest15(minutes: number): number {
@@ -62,87 +29,15 @@ function roundToNearest15(minutes: number): number {
   return Math.max(15, Math.round(minutes / 15) * 15);
 }
 
-function parseGoogleDateTime(value?: { dateTime?: string; date?: string }): Date | null {
-  if (!value) return null;
-  if (value.dateTime) return new Date(value.dateTime);
-  if (value.date) return new Date(`${value.date}T00:00:00`);
-  return null;
-}
-
-function parseGoogleEvent(event: GoogleEventItem) {
-  if (!event?.id) return null;
-
-  const startsAt = parseGoogleDateTime(event.start);
-  const endsAt = parseGoogleDateTime(event.end);
-  if (!startsAt || !endsAt || Number.isNaN(startsAt.getTime()) || Number.isNaN(endsAt.getTime())) {
-    return null;
-  }
-  if (endsAt <= startsAt) return null;
-
-  const durationMinutes = roundToNearest15((endsAt.getTime() - startsAt.getTime()) / 60000);
-  if (durationMinutes <= 0) return null;
-
-  return {
-    externalEventId: event.id,
-    title: event.summary ?? "Untitled meeting",
-    description: event.description ?? "",
-    startsAt,
-    endsAt,
-    roundedMinutes: durationMinutes,
-    htmlLink: event.htmlLink ?? null,
-    organizerEmail: event.organizer?.email ?? "",
-    attendeeEmails: (event.attendees ?? []).map((item: { email?: string }) => item.email ?? "").filter(Boolean)
-  };
+function isPlaceholderEventTitle(title: string): boolean {
+  const normalizedTitle = title.trim().toLowerCase();
+  return normalizedTitle === "busy" || normalizedTitle === "private event";
 }
 
 function includesName(haystack: string, name: string): boolean {
   const cleanedName = normalizeText(name).trim();
   if (!cleanedName) return false;
   return haystack.includes(cleanedName);
-}
-
-async function fetchGoogleCalendarList(accessToken: string): Promise<NonNullable<GoogleCalendarList["items"]>> {
-  const response = await fetch("https://www.googleapis.com/calendar/v3/users/me/calendarList?maxResults=250", {
-    headers: { Authorization: `Bearer ${accessToken}` }
-  });
-  if (!response.ok) {
-    const raw = await response.text();
-    throw new Error(`Google Calendar list request failed (${response.status}): ${raw.slice(0, 280)}`);
-  }
-  const payload = (await response.json()) as GoogleCalendarList;
-  return payload.items ?? [];
-}
-
-async function fetchGoogleEventsForCalendar(args: {
-  accessToken: string;
-  calendarId: string;
-  timeMin: string;
-  timeMax: string;
-}): Promise<NonNullable<GoogleEventsList["items"]>> {
-  const params = new URLSearchParams({
-    singleEvents: "true",
-    orderBy: "startTime",
-    maxResults: "250",
-    timeMin: args.timeMin,
-    timeMax: args.timeMax
-  });
-
-  const response = await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(args.calendarId)}/events?${params.toString()}`,
-    {
-      headers: { Authorization: `Bearer ${args.accessToken}` }
-    }
-  );
-
-  if (!response.ok) {
-    const raw = await response.text();
-    throw new Error(
-      `Google events request failed for calendar ${args.calendarId} (${response.status}): ${raw.slice(0, 280)}`
-    );
-  }
-
-  const payload = (await response.json()) as GoogleEventsList;
-  return payload.items ?? [];
 }
 
 function chooseProjectForEvent(args: {
@@ -180,19 +75,129 @@ function chooseProjectForEvent(args: {
     };
   }
 
-  if (args.searchableText.includes("@mondayandpartners.com") || args.searchableText.includes("@natrx.io")) {
-    return {
-      projectId: args.fallbackProjectId,
-      clientId: null,
-      confidence: 0.45
-    };
-  }
-
   return {
     projectId: args.fallbackProjectId,
     clientId: null,
     confidence: 0.2
   };
+}
+
+function unfoldIcsLines(raw: string): string[] {
+  const lines = raw.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+  const unfolded: string[] = [];
+
+  for (const line of lines) {
+    if ((line.startsWith(" ") || line.startsWith("\t")) && unfolded.length) {
+      unfolded[unfolded.length - 1] += line.slice(1);
+    } else {
+      unfolded.push(line);
+    }
+  }
+
+  return unfolded;
+}
+
+function parseIcsDate(rawValue: string): { date: Date | null; isAllDay: boolean } {
+  const value = rawValue.trim();
+
+  if (/^\d{8}$/.test(value)) {
+    const year = Number(value.slice(0, 4));
+    const month = Number(value.slice(4, 6)) - 1;
+    const day = Number(value.slice(6, 8));
+    return { date: new Date(Date.UTC(year, month, day)), isAllDay: true };
+  }
+
+  const utcMatch = value.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/);
+  if (utcMatch) {
+    const [, y, m, d, hh, mm, ss] = utcMatch;
+    return {
+      date: new Date(Date.UTC(Number(y), Number(m) - 1, Number(d), Number(hh), Number(mm), Number(ss))),
+      isAllDay: false
+    };
+  }
+
+  const localMatch = value.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})$/);
+  if (localMatch) {
+    const [, y, m, d, hh, mm, ss] = localMatch;
+    return {
+      date: new Date(Number(y), Number(m) - 1, Number(d), Number(hh), Number(mm), Number(ss)),
+      isAllDay: false
+    };
+  }
+
+  return { date: null, isAllDay: false };
+}
+
+function parseIcsEvents(raw: string, weekStart: Date, weekEnd: Date): ParsedIcsEvent[] {
+  const lines = unfoldIcsLines(raw);
+  const events: ParsedIcsEvent[] = [];
+
+  let inEvent = false;
+  let uid = "";
+  let summary = "";
+  let description = "";
+  let dtStartRaw = "";
+  let dtEndRaw = "";
+
+  const reset = () => {
+    uid = "";
+    summary = "";
+    description = "";
+    dtStartRaw = "";
+    dtEndRaw = "";
+  };
+
+  for (const line of lines) {
+    if (line === "BEGIN:VEVENT") {
+      inEvent = true;
+      reset();
+      continue;
+    }
+
+    if (line === "END:VEVENT") {
+      inEvent = false;
+
+      const startParsed = parseIcsDate(dtStartRaw);
+      const endParsed = parseIcsDate(dtEndRaw);
+      if (!startParsed.date || !endParsed.date || startParsed.isAllDay || endParsed.isAllDay) {
+        continue;
+      }
+
+      if (endParsed.date <= startParsed.date) continue;
+      if (endParsed.date < weekStart || startParsed.date > weekEnd) continue;
+
+      const roundedMinutes = roundToNearest15((endParsed.date.getTime() - startParsed.date.getTime()) / 60000);
+      if (roundedMinutes <= 0) continue;
+
+      events.push({
+        uid: uid || `${summary}-${startParsed.date.toISOString()}`,
+        title: summary || "Untitled meeting",
+        description: description || "",
+        startsAt: startParsed.date,
+        endsAt: endParsed.date,
+        roundedMinutes
+      });
+
+      continue;
+    }
+
+    if (!inEvent) continue;
+
+    const firstColon = line.indexOf(":");
+    if (firstColon <= 0) continue;
+
+    const rawKey = line.slice(0, firstColon);
+    const rawValue = line.slice(firstColon + 1);
+    const key = rawKey.split(";")[0]?.toUpperCase();
+
+    if (key === "UID") uid = rawValue;
+    if (key === "SUMMARY") summary = rawValue.replaceAll("\\,", ",").replaceAll("\\n", " ");
+    if (key === "DESCRIPTION") description = rawValue.replaceAll("\\n", " ");
+    if (key === "DTSTART") dtStartRaw = rawValue;
+    if (key === "DTEND") dtEndRaw = rawValue;
+  }
+
+  return events;
 }
 
 async function resolveUserIdFromAccessToken(accessToken: string): Promise<string | null> {
@@ -233,21 +238,37 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid user session." }, { status: 401 });
     }
 
-    const body = (await request.json()) as SyncRequestBody;
-    const providerAccessToken = body.providerAccessToken?.trim();
-    if (!providerAccessToken) {
-      return NextResponse.json(
-        { error: "Missing Google provider access token. Sign out and sign in again, then retry sync." },
-        { status: 400 }
-      );
-    }
-
     const supabase = createAdminSupabaseClient();
 
     const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
     const weekEnd = addDays(weekStart, 6);
-    const timeMin = startOfDay(weekStart).toISOString();
-    const timeMax = endOfDay(weekEnd).toISOString();
+    const timeMin = startOfDay(weekStart);
+    const timeMax = endOfDay(weekEnd);
+    const weekStartIso = format(weekStart, "yyyy-MM-dd");
+    const weekEndIso = format(weekEnd, "yyyy-MM-dd");
+
+    const { data: feedSources, error: feedSourcesError } = await supabase
+      .from("calendar_feed_sources")
+      .select("id,name,feed_url")
+      .eq("owner_id", userId)
+      .eq("active", true)
+      .order("created_at", { ascending: true });
+
+    if (feedSourcesError) throw feedSourcesError;
+
+    if (!(feedSources ?? []).length) {
+      return NextResponse.json({ error: "No active calendar sources configured in Admin Mode." }, { status: 400 });
+    }
+
+    const { error: clearError } = await supabase
+      .from("time_entries")
+      .delete()
+      .eq("owner_id", userId)
+      .eq("status", "draft")
+      .eq("source", "calendar")
+      .gte("entry_date", weekStartIso)
+      .lte("entry_date", weekEndIso);
+    if (clearError) throw clearError;
 
     const { data: projects, error: projectsError } = await supabase
       .from("projects")
@@ -303,69 +324,42 @@ export async function POST(request: Request) {
       fallbackProjectId = insertedProject.id;
     }
 
-    const calendars = await fetchGoogleCalendarList(providerAccessToken);
-    const allowedCalendars = calendars.filter((calendar) => {
-      if (!calendar.id) return false;
-      return isAllowedWorkCalendarId(calendar.id);
-    });
-    // Rebuild current-week calendar drafts on every sync so stale noise cannot persist.
-    const { data: existingDraftRows, error: existingDraftRowsError } = await supabase
-      .from("time_entries")
-      .select("id")
-      .eq("owner_id", userId)
-      .eq("status", "draft")
-      .eq("source", "calendar")
-      .gte("entry_date", format(weekStart, "yyyy-MM-dd"))
-      .lte("entry_date", format(weekEnd, "yyyy-MM-dd"));
-
-    if (existingDraftRowsError) throw existingDraftRowsError;
-
-    const draftIdsToDelete = (existingDraftRows ?? []).map((row) => row.id);
-
-    if (draftIdsToDelete.length) {
-      const { error: cleanupError } = await supabase.from("time_entries").delete().in("id", draftIdsToDelete);
-      if (cleanupError) throw cleanupError;
-    }
-
     let imported = 0;
-    let updated = 0;
+    let scannedEvents = 0;
 
-    for (const calendar of allowedCalendars) {
-      const events = await fetchGoogleEventsForCalendar({
-        accessToken: providerAccessToken,
-        calendarId: calendar.id,
-        timeMin,
-        timeMax
-      });
+    for (const source of feedSources ?? []) {
+      const feedUrl = String(source.feed_url ?? "").trim();
+      if (!feedUrl || !feedUrl.startsWith("https://")) {
+        continue;
+      }
+
+      const response = await fetch(feedUrl, { headers: { "User-Agent": "M+P-Time-Sync/1.0" } });
+      if (!response.ok) {
+        throw new Error(`Feed fetch failed for \"${source.name}\" (${response.status}).`);
+      }
+
+      const rawIcs = await response.text();
+      const events = parseIcsEvents(rawIcs, timeMin, timeMax);
 
       for (const event of events) {
-        if (event.status === "cancelled") continue;
-        const parsed = parseGoogleEvent(event);
-        if (!parsed) continue;
-        if (isPlaceholderEventTitle(parsed.title)) continue;
+        scannedEvents += 1;
 
-        const searchableText = normalizeText(
-          [
-            parsed.title,
-            parsed.description,
-            parsed.organizerEmail,
-            ...parsed.attendeeEmails,
-            calendar.id
-          ].join(" ")
-        );
+        if (isPlaceholderEventTitle(event.title)) {
+          continue;
+        }
 
+        const searchableText = normalizeText([event.title, event.description].join(" "));
         const guess = chooseProjectForEvent({
           searchableText,
           projects: (projects ?? []) as CandidateProject[],
           fallbackProjectId
         });
 
+        const externalEventId = `${source.id}:${event.uid}:${event.startsAt.toISOString()}`;
         const payload = {
-          title: parsed.title,
-          description: parsed.description,
-          htmlLink: parsed.htmlLink,
-          organizerEmail: parsed.organizerEmail,
-          attendeeEmails: parsed.attendeeEmails
+          sourceName: source.name,
+          sourceUrl: source.feed_url,
+          description: event.description
         };
 
         const { data: calendarEvent, error: calendarEventError } = await supabase
@@ -373,11 +367,11 @@ export async function POST(request: Request) {
           .upsert(
             {
               owner_id: userId,
-              external_event_id: parsed.externalEventId,
-              calendar_id: calendar.id,
-              title: parsed.title,
-              starts_at: parsed.startsAt.toISOString(),
-              ends_at: parsed.endsAt.toISOString(),
+              external_event_id: externalEventId,
+              calendar_id: `feed:${source.id}`,
+              title: event.title,
+              starts_at: event.startsAt.toISOString(),
+              ends_at: event.endsAt.toISOString(),
               guessed_client_id: guess.clientId,
               guessed_project_id: guess.projectId,
               confidence: guess.confidence,
@@ -392,20 +386,19 @@ export async function POST(request: Request) {
 
         if (calendarEventError) throw calendarEventError;
 
-        const isoDate = format(parsed.startsAt, "yyyy-MM-dd");
-
         const { error: insertError } = await supabase.from("time_entries").insert({
           owner_id: userId,
           project_id: guess.projectId,
-          entry_date: isoDate,
-          rounded_minutes: parsed.roundedMinutes,
+          entry_date: format(event.startsAt, "yyyy-MM-dd"),
+          rounded_minutes: event.roundedMinutes,
           status: "draft",
           source: "calendar",
-          tags: ["calendar"],
-          notes: parsed.title,
+          tags: ["calendar", "feed"],
+          notes: event.title,
           calendar_event_id: calendarEvent.id
         });
         if (insertError) throw insertError;
+
         imported += 1;
       }
     }
@@ -413,11 +406,12 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       imported,
-      updated,
-      calendarsScanned: allowedCalendars.length,
+      updated: 0,
+      calendarsScanned: (feedSources ?? []).length,
+      eventsScanned: scannedEvents,
       range: {
-        start: format(weekStart, "yyyy-MM-dd"),
-        end: format(weekEnd, "yyyy-MM-dd")
+        start: weekStartIso,
+        end: weekEndIso
       }
     });
   } catch (error) {

@@ -80,3 +80,10 @@ export interface MergeEvent {
   targetProjectId: string;
   effectiveDate: string;
 }
+
+export interface CalendarFeedSource {
+  id: string;
+  name: string;
+  feedUrl: string;
+  active: boolean;
+}

@@ -442,8 +442,8 @@ export function WeekGrid() {
   };
 
   const handleCalendarSync = async () => {
-    if (!session?.access_token || !session?.provider_token) {
-      setError("Calendar access needs a fresh Google sign-in. Sign out and sign in again, then sync.");
+    if (!session?.access_token) {
+      setError("Sign in again and retry sync.");
       setSyncMessage(null);
       return;
     }
@@ -456,12 +456,8 @@ export function WeekGrid() {
       const response = await fetch("/api/calendar/sync", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          providerAccessToken: session.provider_token
-        })
+        }
       });
 
       const payload = (await response.json().catch(() => null)) as
