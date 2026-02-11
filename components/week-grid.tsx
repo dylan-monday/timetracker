@@ -445,6 +445,25 @@ export function WeekGrid() {
         projectName: draftCreateProject.trim()
       });
 
+      setClients((current) => {
+        if (current.some((client) => client.id === created.clientId)) return current;
+        return [...current, { id: created.clientId, name: created.clientName, kind: "external" as const }].sort((a, b) =>
+          a.name.localeCompare(b.name)
+        );
+      });
+      setProjects((current) => {
+        if (current.some((project) => project.id === created.id)) return current;
+        return [
+          ...current,
+          {
+            id: created.id,
+            name: created.name,
+            clientId: created.clientId,
+            clientName: created.clientName
+          }
+        ].sort((a, b) => `${a.clientName} ${a.name}`.localeCompare(`${b.clientName} ${b.name}`));
+      });
+
       await approveDraftEntry({
         supabase,
         entryId: draftCreateEntryId,
