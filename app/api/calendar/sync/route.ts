@@ -308,12 +308,10 @@ export async function POST(request: Request) {
       if (!calendar.id) return false;
       return isAllowedWorkCalendarId(calendar.id);
     });
-    const allowedCalendarIds = new Set(allowedCalendars.map((calendar) => calendar.id.toLowerCase()));
-
-    // Cleanup stale draft imports from previously looser filtering so the list reflects current rules.
+    // Rebuild current-week calendar drafts on every sync so stale noise cannot persist.
     const { data: existingDraftRows, error: existingDraftRowsError } = await supabase
       .from("time_entries")
-      .select("id,calendar_events(calendar_id,title)")
+      .select("id")
       .eq("owner_id", userId)
       .eq("status", "draft")
       .eq("source", "calendar")
@@ -322,15 +320,7 @@ export async function POST(request: Request) {
 
     if (existingDraftRowsError) throw existingDraftRowsError;
 
-    const draftIdsToDelete = (existingDraftRows ?? [])
-      .filter((row) => {
-        const calendarEvent = Array.isArray(row.calendar_events) ? row.calendar_events[0] : row.calendar_events;
-        if (!calendarEvent) return true;
-        const calendarId = (calendarEvent.calendar_id ?? "").toLowerCase();
-        const title = calendarEvent.title ?? "";
-        return !allowedCalendarIds.has(calendarId) || isPlaceholderEventTitle(title);
-      })
-      .map((row) => row.id);
+    const draftIdsToDelete = (existingDraftRows ?? []).map((row) => row.id);
 
     if (draftIdsToDelete.length) {
       const { error: cleanupError } = await supabase.from("time_entries").delete().in("id", draftIdsToDelete);
@@ -403,34 +393,6 @@ export async function POST(request: Request) {
         if (calendarEventError) throw calendarEventError;
 
         const isoDate = format(parsed.startsAt, "yyyy-MM-dd");
-
-        const { data: existingEntry, error: existingEntryError } = await supabase
-          .from("time_entries")
-          .select("id,status")
-          .eq("owner_id", userId)
-          .eq("calendar_event_id", calendarEvent.id)
-          .maybeSingle();
-        if (existingEntryError) throw existingEntryError;
-
-        if (existingEntry?.id) {
-          if (existingEntry.status !== "draft") {
-            continue;
-          }
-
-          const { error: updateError } = await supabase
-            .from("time_entries")
-            .update({
-              project_id: guess.projectId,
-              entry_date: isoDate,
-              rounded_minutes: parsed.roundedMinutes,
-              status: "draft",
-              source: "calendar"
-            })
-            .eq("id", existingEntry.id);
-          if (updateError) throw updateError;
-          updated += 1;
-          continue;
-        }
 
         const { error: insertError } = await supabase.from("time_entries").insert({
           owner_id: userId,
