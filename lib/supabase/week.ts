@@ -91,8 +91,19 @@ export async function fetchWeekLines(
     const project = projectById.get(entry.project_id);
     if (!project) continue;
 
-    const line = lineByProject.get(project.id);
-    if (!line) continue;
+    let line = lineByProject.get(project.id);
+    if (!line) {
+      line = {
+        id: `line-${project.id}`,
+        projectId: project.id,
+        clientId: project.clientId,
+        clientName: project.clientName,
+        projectName: project.name,
+        isDraft: false,
+        cells: {}
+      };
+      lineByProject.set(project.id, line);
+    }
 
     const dayIndex = dayIndexFromISO(entry.entry_date);
     line.cells[String(dayIndex)] = (line.cells[String(dayIndex)] ?? 0) + entry.rounded_minutes;
