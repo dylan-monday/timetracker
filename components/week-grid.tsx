@@ -68,6 +68,22 @@ function isWeekendIsoDate(isoDate: string): boolean {
   return day === 0 || day === 6;
 }
 
+function formatDraftTimeRange(entry: DraftEntry): string | null {
+  if (!entry.startsAt || !entry.endsAt) return null;
+
+  const start = new Date(entry.startsAt);
+  const end = new Date(entry.endsAt);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
+
+  const weekday = start.toLocaleDateString(undefined, { weekday: "short" });
+  const month = start.toLocaleDateString(undefined, { month: "short" });
+  const day = start.toLocaleDateString(undefined, { day: "numeric" });
+  const startTime = start.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  const endTime = end.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+
+  return `${weekday}, ${month} ${day} • ${startTime} - ${endTime}`;
+}
+
 export function WeekGrid() {
   const { session, supabase, user } = useAuth();
   const weekDays = useMemo(() => makeWeekDays(), []);
@@ -390,6 +406,39 @@ export function WeekGrid() {
     } finally {
       setDraftActionId(null);
     }
+  };
+
+  const handleDraftReassign = async (entryId: string, selectedProjectId: string) => {
+    if (!supabase || !user) return;
+
+    if (selectedProjectId === "__new__") {
+      const clientName = window.prompt("New client name");
+      if (!clientName?.trim()) return;
+
+      const projectName = window.prompt(`New project name for ${clientName.trim()}`);
+      if (!projectName?.trim()) return;
+
+      setDraftActionId(entryId);
+      setError(null);
+
+      try {
+        const created = await ensureClientAndProject({
+          supabase,
+          userId: user.id,
+          clientName: clientName.trim(),
+          projectName: projectName.trim()
+        });
+        await handleDraftApprove(entryId, created.id);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Could not create project for draft.");
+      } finally {
+        setDraftActionId(null);
+      }
+
+      return;
+    }
+
+    await handleDraftApprove(entryId, selectedProjectId);
   };
 
   const handleCalendarSync = async () => {
@@ -720,8 +769,8 @@ export function WeekGrid() {
               <li key={entry.id} className="rounded-xl border border-black/10 bg-white p-3">
                 <p className="text-sm font-medium text-ink">{entry.eventTitle}</p>
                 <p className="mt-0.5 text-xs text-muted">
-                  {entry.isoDate} • {minutesToDisplay(entry.roundedMinutes)} • {entry.clientName} /{" "}
-                  {entry.projectName}
+                  {formatDraftTimeRange(entry) ?? entry.isoDate} • {minutesToDisplay(entry.roundedMinutes)} •{" "}
+                  {entry.clientName} / {entry.projectName}
                 </p>
 
                 <div className="mt-2 flex flex-wrap gap-2">
@@ -742,7 +791,7 @@ export function WeekGrid() {
                     onChange={(event) => {
                       const nextProjectId = event.target.value;
                       if (!nextProjectId) return;
-                      void handleDraftApprove(entry.id, nextProjectId);
+                      void handleDraftReassign(entry.id, nextProjectId);
                       event.currentTarget.value = "";
                     }}
                     disabled={draftActionId === entry.id}
@@ -753,6 +802,7 @@ export function WeekGrid() {
                         {project.clientName} / {project.name}
                       </option>
                     ))}
+                    <option value="__new__">+ New client/project...</option>
                   </select>
 
                   <button

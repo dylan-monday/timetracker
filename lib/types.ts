@@ -70,6 +70,8 @@ export interface DraftEntry {
   projectName: string;
   clientName: string;
   eventTitle: string;
+  startsAt: string | null;
+  endsAt: string | null;
 }
 
 export interface MergeEvent {

@@ -170,7 +170,9 @@ export async function fetchWeekDraftEntries(
 
   const { data, error } = await supabase
     .from("time_entries")
-    .select("id,entry_date,rounded_minutes,project_id,projects(name,clients(name)),calendar_events(title)")
+    .select(
+      "id,entry_date,rounded_minutes,project_id,projects(name,clients(name)),calendar_events(title,starts_at,ends_at)"
+    )
     .eq("status", "draft")
     .eq("source", "calendar")
     .gte("entry_date", window.start)
@@ -191,7 +193,9 @@ export async function fetchWeekDraftEntries(
       projectId: row.project_id,
       projectName: project?.name ?? "Unassigned project",
       clientName: client?.name ?? "Unassigned client",
-      eventTitle: event?.title ?? "Untitled meeting"
+      eventTitle: event?.title ?? "Untitled meeting",
+      startsAt: event?.starts_at ?? null,
+      endsAt: event?.ends_at ?? null
     };
   });
 }
