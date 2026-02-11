@@ -31,9 +31,9 @@ export function AppShell({ title, subtitle, children }: AppShellProps) {
       <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 pb-8 pt-6 sm:px-8 lg:px-12">
         <header className="flex items-center justify-between rounded-2xl border border-black/5 bg-gradient-to-r from-panel via-white/85 to-panel px-4 py-3 shadow-soft backdrop-blur">
           <div className="flex items-center gap-3">
-            <Image src="/MP26.svg" alt="Monday + Partners" width={28} height={28} className="h-7 w-7" />
+            <Image src="/m26-black-simple.svg" alt="M+P" width={28} height={28} className="h-7 w-7" />
             <div className="h-2.5 w-2.5 rounded-full bg-accentStrong shadow-[0_0_14px_rgba(88,200,87,.9)]" />
-            <span className="text-sm font-semibold tracking-tight">Monday + Partners Time</span>
+            <span className="text-sm font-semibold tracking-tight">M+P Time</span>
           </div>
           <nav className="flex items-center gap-1 rounded-xl border border-black/5 bg-white/60 p-1">
             {navItems.map((item) => {

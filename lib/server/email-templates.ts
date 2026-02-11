@@ -64,7 +64,7 @@ function baseLayout(args: LayoutArgs): string {
 
             <tr>
               <td style="padding:0 24px 22px;font-size:12px;color:#7f8592;">
-                Monday + Partners Time
+                M+P Time
               </td>
             </tr>
           </table>

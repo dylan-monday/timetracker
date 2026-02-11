@@ -31,7 +31,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         <section className="w-full max-w-xl rounded-[1.6rem] border border-black/10 bg-panel/95 p-8 shadow-[0_20px_80px_rgba(17,19,24,0.12)] backdrop-blur">
           <div className="mb-6 flex items-center justify-between">
             <div className="inline-flex items-center gap-3 rounded-full border border-black/10 bg-white/70 px-3 py-2">
-              <Image src="/MP26.svg" alt="Monday + Partners" width={28} height={28} className="h-7 w-7" />
+              <Image src="/m26-black-simple.svg" alt="M+P" width={28} height={28} className="h-7 w-7" />
               <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">M+P Time</span>
             </div>
             <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-accentStrong shadow-[0_0_14px_rgba(88,200,87,.8)]" />

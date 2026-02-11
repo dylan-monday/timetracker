@@ -4,7 +4,7 @@ import { AuthProvider } from "@/components/auth-provider";
 import { AuthGate } from "@/components/auth-gate";
 
 export const metadata: Metadata = {
-  title: "Monday + Partners Time",
+  title: "M+P Time",
   description: "Elegant, pared-back time tracking for creative work."
 };
 
