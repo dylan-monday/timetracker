@@ -66,7 +66,7 @@ export function AppShell({ title, subtitle, children }: AppShellProps) {
 
         <section className="flex flex-wrap items-end justify-between gap-2">
           <div>
-            <h1 className="font-display text-4xl font-semibold tracking-tight sm:text-5xl">{title}</h1>
+            <h1 className="font-display text-4xl tracking-tight sm:text-5xl">{title}</h1>
             {subtitle ? <p className="mt-1 text-sm text-muted">{subtitle}</p> : null}
           </div>
           <UserPill />

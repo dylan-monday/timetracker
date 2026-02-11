@@ -684,10 +684,9 @@ export function WeekGrid() {
         )}
       </div>
 
-      <div className="rounded-2xl border border-black/5 bg-panel px-4 py-3 text-sm text-muted shadow-soft">
-        <p className="font-display text-lg text-ink">Daily Reflection</p>
-        <p className="mt-1 italic">“{reflectionQuote}”</p>
-      </div>
+      <p className="font-display py-2 text-center text-xl leading-tight text-black/28 italic sm:text-2xl">
+        “{reflectionQuote}”
+      </p>
     </section>
   );
 }
