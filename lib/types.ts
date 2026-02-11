@@ -41,10 +41,35 @@ export interface WeekDay {
 
 export interface WeekLine {
   id: string;
+  projectId?: string;
+  clientId?: string;
   clientName: string;
   projectName: string;
   isDraft?: boolean;
   cells: Record<string, number>;
+}
+
+export interface ClientOption {
+  id: string;
+  name: string;
+  kind: ClientKind;
+}
+
+export interface ProjectOption {
+  id: string;
+  name: string;
+  clientId: string;
+  clientName: string;
+}
+
+export interface DraftEntry {
+  id: string;
+  isoDate: string;
+  roundedMinutes: number;
+  projectId: string | null;
+  projectName: string;
+  clientName: string;
+  eventTitle: string;
 }
 
 export interface MergeEvent {

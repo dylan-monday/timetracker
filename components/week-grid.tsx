@@ -1,11 +1,21 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Plus, Sparkles } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Plus, RefreshCw, Sparkles } from "lucide-react";
+import { useAuth } from "@/components/auth-provider";
 import { demoWeekLines, makeWeekDays } from "@/lib/mock-data";
-import { minutesToDisplay, parseAndRoundTimeInput } from "@/lib/time";
 import { missingMinutes, missingState, targetWorkingMinutes } from "@/lib/missing-time";
-import type { WeekLine } from "@/lib/types";
+import {
+  approveDraftEntry,
+  ensureClientAndProject,
+  fetchClientsAndProjects,
+  fetchWeekDraftEntries,
+  fetchWeekLines,
+  rejectDraftEntry,
+  upsertDailyManualEntry
+} from "@/lib/supabase/week";
+import { minutesToDisplay, parseAndRoundTimeInput } from "@/lib/time";
+import type { ClientOption, DraftEntry, ProjectOption, WeekLine } from "@/lib/types";
 
 const BUSINESS_DAY_INDEXES = [1, 2, 3, 4, 5];
 const ALL_DAY_INDEXES = [1, 2, 3, 4, 5, 6, 7];
@@ -17,55 +27,230 @@ function stateClass(state: "ok" | "attention" | "gap"): string {
 }
 
 export function WeekGrid() {
+  const { supabase, user } = useAuth();
   const weekDays = useMemo(() => makeWeekDays(), []);
+
   const [showWeekends, setShowWeekends] = useState(false);
-  const [lines, setLines] = useState<WeekLine[]>(demoWeekLines);
+  const [lines, setLines] = useState<WeekLine[]>([]);
+  const [clients, setClients] = useState<ClientOption[]>([]);
+  const [projects, setProjects] = useState<ProjectOption[]>([]);
+  const [draftEntries, setDraftEntries] = useState<DraftEntry[]>([]);
+
   const [entryInput, setEntryInput] = useState("");
   const [activeCell, setActiveCell] = useState<{ lineId: string; dayIndex: number } | null>(null);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
 
+  const [quickClient, setQuickClient] = useState("");
+  const [quickProject, setQuickProject] = useState("");
+  const [quickTags, setQuickTags] = useState("");
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [draftActionId, setDraftActionId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
   const visibleDayIndexes = showWeekends ? ALL_DAY_INDEXES : BUSINESS_DAY_INDEXES;
+
+  const refreshWeekData = useCallback(async () => {
+    if (!user || !supabase) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { clients: dbClients, projects: dbProjects } = await fetchClientsAndProjects(supabase);
+      const [dbLines, dbDrafts] = await Promise.all([
+        fetchWeekLines(supabase, dbProjects),
+        fetchWeekDraftEntries(supabase)
+      ]);
+
+      setClients(dbClients);
+      setProjects(dbProjects);
+      setLines(dbLines.length ? dbLines : demoWeekLines);
+      setDraftEntries(dbDrafts);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not load data.");
+      setLines(demoWeekLines);
+    } finally {
+      setLoading(false);
+    }
+  }, [supabase, user]);
+
+  useEffect(() => {
+    void refreshWeekData();
+  }, [refreshWeekData]);
 
   const totalsByDay = visibleDayIndexes.reduce<Record<number, number>>((acc, dayIndex) => {
     acc[dayIndex] = lines.reduce((sum, line) => sum + (line.cells[String(dayIndex)] ?? 0), 0);
     return acc;
   }, {});
 
-  const handleCellSubmit = () => {
-    if (!activeCell) return;
+  const handleCellSubmit = async () => {
+    if (!activeCell || !user || !supabase) return;
+
     const rounded = parseAndRoundTimeInput(entryInput);
-    if (rounded === null) return;
+    if (rounded === null) {
+      setActiveCell(null);
+      setEntryInput("");
+      return;
+    }
+
+    const line = lines.find((item) => item.id === activeCell.lineId);
+    if (!line?.projectId) {
+      setActiveCell(null);
+      setEntryInput("");
+      return;
+    }
+
+    const isoDate = weekDays[activeCell.dayIndex - 1]?.isoDate;
+    if (!isoDate) return;
 
     setLines((current) =>
-      current.map((line) => {
-        if (line.id !== activeCell.lineId) return line;
+      current.map((item) => {
+        if (item.id !== activeCell.lineId) return item;
         return {
-          ...line,
+          ...item,
           cells: {
-            ...line.cells,
+            ...item.cells,
             [String(activeCell.dayIndex)]: rounded
           }
         };
       })
     );
 
-    setEntryInput("");
-    setActiveCell(null);
+    setSaving(true);
+    setError(null);
+
+    try {
+      await upsertDailyManualEntry({
+        supabase,
+        userId: user.id,
+        projectId: line.projectId,
+        isoDate,
+        roundedMinutes: rounded
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save entry.");
+      await refreshWeekData();
+    } finally {
+      setSaving(false);
+      setEntryInput("");
+      setActiveCell(null);
+    }
+  };
+
+  const filteredProjects = useMemo(() => {
+    if (!quickClient.trim()) return projects;
+    const client = clients.find((item) => item.name.toLowerCase() === quickClient.trim().toLowerCase());
+    if (!client) return projects;
+
+    return projects.filter((project) => project.clientId === client.id);
+  }, [clients, projects, quickClient]);
+
+  const handleQuickAddSave = async () => {
+    if (!user || !supabase || !quickClient.trim() || !quickProject.trim()) {
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      const project = await ensureClientAndProject({
+        supabase,
+        userId: user.id,
+        clientName: quickClient,
+        projectName: quickProject
+      });
+
+      setLines((current) => {
+        const exists = current.some((line) => line.projectId === project.id);
+        if (exists) return current;
+
+        return [
+          ...current,
+          {
+            id: `line-${project.id}`,
+            projectId: project.id,
+            clientId: project.clientId,
+            clientName: project.clientName,
+            projectName: project.name,
+            cells: {},
+            isDraft: false
+          }
+        ];
+      });
+
+      setQuickClient("");
+      setQuickProject("");
+      setQuickTags("");
+      setShowQuickAdd(false);
+      await refreshWeekData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not add line.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDraftApprove = async (entryId: string, projectId?: string) => {
+    if (!supabase) return;
+    setDraftActionId(entryId);
+    setError(null);
+
+    try {
+      await approveDraftEntry({ supabase, entryId, projectId });
+      await refreshWeekData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not approve draft entry.");
+    } finally {
+      setDraftActionId(null);
+    }
+  };
+
+  const handleDraftReject = async (entryId: string) => {
+    if (!supabase) return;
+    setDraftActionId(entryId);
+    setError(null);
+
+    try {
+      await rejectDraftEntry({ supabase, entryId });
+      await refreshWeekData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not reject draft entry.");
+    } finally {
+      setDraftActionId(null);
+    }
   };
 
   return (
     <section className="space-y-4">
       <div className="rounded-2xl border border-black/5 bg-panel p-4 shadow-soft">
-        <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-muted">Fast, human entry. Type `1.5`, `1h 30m`, or `90m`.</p>
-          <button
-            type="button"
-            className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-sm font-medium"
-            onClick={() => setShowWeekends((value) => !value)}
-          >
-            {showWeekends ? "Hide weekends" : "Show weekends"}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white px-3 py-1.5 text-sm font-medium"
+              onClick={() => {
+                void refreshWeekData();
+              }}
+              disabled={loading || saving}
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              Sync
+            </button>
+            <button
+              type="button"
+              className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-sm font-medium"
+              onClick={() => setShowWeekends((value) => !value)}
+            >
+              {showWeekends ? "Hide weekends" : "Show weekends"}
+            </button>
+          </div>
         </div>
+
+        {error ? <p className="mb-3 text-xs text-danger">{error}</p> : null}
 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] border-separate border-spacing-y-2 text-sm">
@@ -117,10 +302,12 @@ export function WeekGrid() {
                             autoFocus
                             value={entryInput}
                             onChange={(event) => setEntryInput(event.target.value)}
-                            onBlur={handleCellSubmit}
+                            onBlur={() => {
+                              void handleCellSubmit();
+                            }}
                             onKeyDown={(event) => {
                               if (event.key === "Enter") {
-                                handleCellSubmit();
+                                void handleCellSubmit();
                               }
                             }}
                             className="w-full rounded-lg border border-black/15 bg-canvas px-2 py-1.5 text-sm focus:border-black/30 focus:outline-none"
@@ -145,6 +332,12 @@ export function WeekGrid() {
               ))}
             </tbody>
           </table>
+
+          {!lines.length && !loading ? (
+            <div className="rounded-xl border border-dashed border-black/15 p-6 text-center text-sm text-muted">
+              No lines yet. Add your first client/project line to start tracking.
+            </div>
+          ) : null}
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
@@ -169,29 +362,47 @@ export function WeekGrid() {
       {showQuickAdd ? (
         <aside className="fixed inset-x-0 bottom-0 z-20 rounded-t-3xl border border-black/10 bg-panel p-4 shadow-[0_-20px_50px_rgba(0,0,0,0.14)] sm:mx-auto sm:mb-6 sm:max-w-xl">
           <h2 className="text-base font-semibold">Quick add line</h2>
-          <p className="mt-1 text-sm text-muted">Thumb-first flow: client then project, add missing right there.</p>
+          <p className="mt-1 text-sm text-muted">Client and project can be selected or created in place.</p>
 
           <div className="mt-4 space-y-3">
             <label className="block">
               <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted">Client</span>
               <input
+                list="client-options"
                 type="text"
+                value={quickClient}
+                onChange={(event) => setQuickClient(event.target.value)}
                 placeholder="Pick existing or create new"
                 className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-black/30"
               />
+              <datalist id="client-options">
+                {clients.map((client) => (
+                  <option key={client.id} value={client.name} />
+                ))}
+              </datalist>
             </label>
             <label className="block">
               <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted">Project</span>
               <input
+                list="project-options"
                 type="text"
+                value={quickProject}
+                onChange={(event) => setQuickProject(event.target.value)}
                 placeholder="Pick existing or create new"
                 className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-black/30"
               />
+              <datalist id="project-options">
+                {filteredProjects.map((project) => (
+                  <option key={project.id} value={project.name} />
+                ))}
+              </datalist>
             </label>
             <label className="block">
               <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted">Tags (optional)</span>
               <input
                 type="text"
+                value={quickTags}
+                onChange={(event) => setQuickTags(event.target.value)}
                 placeholder="strategy, social, production"
                 className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-black/30"
               />
@@ -208,8 +419,11 @@ export function WeekGrid() {
             </button>
             <button
               type="button"
-              className="flex-1 rounded-full bg-ink px-4 py-2 text-sm font-medium text-white"
-              onClick={() => setShowQuickAdd(false)}
+              className="flex-1 rounded-full bg-ink px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+              onClick={() => {
+                void handleQuickAddSave();
+              }}
+              disabled={saving || !quickClient.trim() || !quickProject.trim()}
             >
               Save line
             </button>
@@ -222,9 +436,67 @@ export function WeekGrid() {
         <p className="mt-1 text-sm text-muted">
           Meeting imports create immediate drafts in this week. Approve, reassign, or reject in-line.
         </p>
-        <div className="mt-3 rounded-xl border border-dashed border-black/15 p-3 text-sm text-muted">
-          2 draft entries awaiting approval. Auto-suggestion used title, attendees, and calendar.
-        </div>
+
+        {draftEntries.length ? (
+          <ul className="mt-3 space-y-2">
+            {draftEntries.map((entry) => (
+              <li key={entry.id} className="rounded-xl border border-black/10 bg-white p-3">
+                <p className="text-sm font-medium text-ink">{entry.eventTitle}</p>
+                <p className="mt-0.5 text-xs text-muted">
+                  {entry.isoDate} • {minutesToDisplay(entry.roundedMinutes)} • {entry.clientName} /{" "}
+                  {entry.projectName}
+                </p>
+
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="rounded-full bg-ink px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+                    onClick={() => {
+                      void handleDraftApprove(entry.id);
+                    }}
+                    disabled={draftActionId === entry.id}
+                  >
+                    Approve
+                  </button>
+
+                  <select
+                    className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs"
+                    defaultValue=""
+                    onChange={(event) => {
+                      const nextProjectId = event.target.value;
+                      if (!nextProjectId) return;
+                      void handleDraftApprove(entry.id, nextProjectId);
+                      event.currentTarget.value = "";
+                    }}
+                    disabled={draftActionId === entry.id}
+                  >
+                    <option value="">Approve + reassign...</option>
+                    {projects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.clientName} / {project.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <button
+                    type="button"
+                    className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-ink disabled:opacity-50"
+                    onClick={() => {
+                      void handleDraftReject(entry.id);
+                    }}
+                    disabled={draftActionId === entry.id}
+                  >
+                    Reject
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="mt-3 rounded-xl border border-dashed border-black/15 p-3 text-sm text-muted">
+            No calendar drafts pending approval this week.
+          </div>
+        )}
       </div>
 
       <div className="text-xs text-muted">

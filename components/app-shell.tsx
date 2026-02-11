@@ -3,6 +3,7 @@ import { CalendarRange, ChartColumn, Shield } from "lucide-react";
 import { clsx } from "clsx";
 import type { ReactNode } from "react";
 import Image from "next/image";
+import { UserPill } from "@/components/user-pill";
 
 interface AppShellProps {
   title: string;
@@ -53,12 +54,7 @@ export function AppShell({ title, subtitle, children }: AppShellProps) {
             <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h1>
             {subtitle ? <p className="mt-1 text-sm text-muted">{subtitle}</p> : null}
           </div>
-          <a
-            href="#"
-            className="inline-flex items-center rounded-full border border-black/10 bg-white/85 px-4 py-2 text-sm font-medium text-ink transition hover:border-black/20"
-          >
-            Settings
-          </a>
+          <UserPill />
         </section>
 
         {children}

@@ -165,6 +165,11 @@ create table if not exists public.email_jobs (
   unique (owner_id, job_kind, scheduled_for)
 );
 
+create index if not exists idx_time_entries_owner_date on public.time_entries(owner_id, entry_date);
+create index if not exists idx_time_entries_owner_project_date on public.time_entries(owner_id, project_id, entry_date);
+create index if not exists idx_projects_owner_client on public.projects(owner_id, client_id);
+create index if not exists idx_calendar_events_owner_start on public.calendar_events(owner_id, starts_at);
+
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql
@@ -232,6 +237,24 @@ begin
 end;
 $$;
 
+create or replace function public.create_default_internal_clients(p_owner_id uuid)
+returns void
+language plpgsql
+as $$
+begin
+  insert into public.clients (owner_id, name, kind, active)
+  values
+    (p_owner_id, 'Business Dev', 'internal', true),
+    (p_owner_id, 'Admin', 'internal', true),
+    (p_owner_id, 'Team', 'internal', true),
+    (p_owner_id, 'Learning', 'internal', true),
+    (p_owner_id, 'Recruiting', 'internal', true),
+    (p_owner_id, 'Marketing', 'internal', true),
+    (p_owner_id, 'Exercise', 'internal', true)
+  on conflict (owner_id, lower(name)) do nothing;
+end;
+$$;
+
 alter table public.profiles enable row level security;
 alter table public.clients enable row level security;
 alter table public.projects enable row level security;
@@ -287,3 +310,4 @@ with check (auth.uid() = owner_id);
 -- Bootstrap helper for first admin user.
 -- Run once after first Google sign in.
 -- update public.profiles set role = 'admin' where email = 'dylan@mondayandpartners.com';
+-- select public.create_default_internal_clients('<OWNER_UUID>');

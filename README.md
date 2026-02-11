@@ -37,10 +37,33 @@ A premium, pared-back time tracker built for creative work.
 1. Create a Supabase project.
 2. Run the SQL in `/supabase/schema.sql`.
 3. Configure Google OAuth in Supabase Auth.
-4. Restrict sign-in to `@mondayandpartners.com` and set `dylan@mondayandpartners.com` as admin role after first login.
+4. Set app redirect URL to your local and production URLs.
+5. Sign in once with `dylan@mondayandpartners.com` so profile is created by trigger.
+6. Run bootstrap helper SQL:
+   ```sql
+   select public.create_default_internal_clients('<OWNER_UUID>');
+   ```
+   Use your `profiles.id` as `OWNER_UUID`.
 
 ## Email jobs
 - Daily reminder at 4:00 PM local user time with deep link to app.
 - Weekly recap every Friday at 5:00 PM local user time.
+- API endpoints:
+  - `POST /api/cron/daily-reminder`
+  - `POST /api/cron/weekly-recap`
+  - Header required: `x-cron-secret: <CRON_SECRET>`
 
-(Actual cron/edge function wiring is next implementation step.)
+## Current implementation status
+- Auth gate with Google sign-in UI and domain check
+- Supabase-backed week grid reads/writes manual entries
+- Admin CRUD for clients/projects + forward-only merge RPC
+- Trends page wired to approved entry aggregates
+
+## Suggested Vercel Cron setup
+1. Add `CRON_SECRET`, `RESEND_API_KEY`, `EMAIL_FROM`, `APP_URL`, and Supabase env vars in Vercel.
+2. Configure Vercel cron jobs to call:
+   - weekday 4:00 PM local: `/api/cron/daily-reminder`
+   - Friday 5:00 PM local: `/api/cron/weekly-recap`
+3. Send `x-cron-secret` header from cron invocations.
+
+(Calendar ingest/approval backend is the next implementation step.)
