@@ -52,6 +52,11 @@ function isAllowedWorkCalendarId(calendarId: string): boolean {
   );
 }
 
+function isPlaceholderEventTitle(title: string): boolean {
+  const normalizedTitle = title.trim().toLowerCase();
+  return normalizedTitle === "busy" || normalizedTitle === "private event";
+}
+
 function roundToNearest15(minutes: number): number {
   if (minutes <= 0) return 0;
   return Math.max(15, Math.round(minutes / 15) * 15);
@@ -303,6 +308,34 @@ export async function POST(request: Request) {
       if (!calendar.id) return false;
       return isAllowedWorkCalendarId(calendar.id);
     });
+    const allowedCalendarIds = new Set(allowedCalendars.map((calendar) => calendar.id.toLowerCase()));
+
+    // Cleanup stale draft imports from previously looser filtering so the list reflects current rules.
+    const { data: existingDraftRows, error: existingDraftRowsError } = await supabase
+      .from("time_entries")
+      .select("id,calendar_events(calendar_id,title)")
+      .eq("owner_id", userId)
+      .eq("status", "draft")
+      .eq("source", "calendar")
+      .gte("entry_date", format(weekStart, "yyyy-MM-dd"))
+      .lte("entry_date", format(weekEnd, "yyyy-MM-dd"));
+
+    if (existingDraftRowsError) throw existingDraftRowsError;
+
+    const draftIdsToDelete = (existingDraftRows ?? [])
+      .filter((row) => {
+        const calendarEvent = Array.isArray(row.calendar_events) ? row.calendar_events[0] : row.calendar_events;
+        if (!calendarEvent) return true;
+        const calendarId = (calendarEvent.calendar_id ?? "").toLowerCase();
+        const title = calendarEvent.title ?? "";
+        return !allowedCalendarIds.has(calendarId) || isPlaceholderEventTitle(title);
+      })
+      .map((row) => row.id);
+
+    if (draftIdsToDelete.length) {
+      const { error: cleanupError } = await supabase.from("time_entries").delete().in("id", draftIdsToDelete);
+      if (cleanupError) throw cleanupError;
+    }
 
     let imported = 0;
     let updated = 0;
@@ -319,8 +352,7 @@ export async function POST(request: Request) {
         if (event.status === "cancelled") continue;
         const parsed = parseGoogleEvent(event);
         if (!parsed) continue;
-        const normalizedTitle = parsed.title.trim().toLowerCase();
-        if (normalizedTitle === "busy" || normalizedTitle === "private event") continue;
+        if (isPlaceholderEventTitle(parsed.title)) continue;
 
         const searchableText = normalizeText(
           [
