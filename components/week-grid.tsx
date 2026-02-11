@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Plus, RefreshCw, Sparkles, Trash2 } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 import { makeWeekDays } from "@/lib/mock-data";
-import { missingMinutes, missingState, targetWorkingMinutes } from "@/lib/missing-time";
+import { missingMinutes, missingState } from "@/lib/missing-time";
 import {
   approveDraftEntry,
   deleteLineEntriesForWeek,
@@ -21,6 +21,16 @@ import type { ClientOption, DraftEntry, ProjectOption, WeekLine } from "@/lib/ty
 const BUSINESS_DAY_INDEXES = [1, 2, 3, 4, 5];
 const ALL_DAY_INDEXES = [1, 2, 3, 4, 5, 6, 7];
 const WEEK_LINE_STORAGE_PREFIX = "mp-time-week-lines";
+const REFLECTION_QUOTES = [
+  "Time is not what the clock says; it is what your attention becomes.",
+  "A useful day is not a packed day. It is a day spent on what matters.",
+  "You are always becoming someone through what you choose to do next.",
+  "Productivity without presence is motion without meaning.",
+  "Build a life that feels alive, not just a schedule that looks full.",
+  "Your hours are your philosophy made visible.",
+  "What you repeat becomes your identity, one quiet block at a time.",
+  "The point is not to do everything. The point is to do the right things deeply."
+];
 
 function stateClass(state: "ok" | "attention" | "gap"): string {
   if (state === "ok") return "bg-accent/40 text-ink";
@@ -51,6 +61,10 @@ export function WeekGrid() {
   const [draftActionId, setDraftActionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pinnedProjectIds, setPinnedProjectIds] = useState<string[]>([]);
+  const reflectionQuote = useMemo(
+    () => REFLECTION_QUOTES[Math.floor(Math.random() * REFLECTION_QUOTES.length)],
+    []
+  );
 
   const visibleDayIndexes = showWeekends ? ALL_DAY_INDEXES : BUSINESS_DAY_INDEXES;
   const weekKey = weekDays[0]?.isoDate ?? "week";
@@ -595,8 +609,9 @@ export function WeekGrid() {
         )}
       </div>
 
-      <div className="text-xs text-muted">
-        Daily target: {minutesToDisplay(targetWorkingMinutes())} between 8:00 and 17:00.
+      <div className="rounded-2xl border border-black/5 bg-panel px-4 py-3 text-sm text-muted shadow-soft">
+        <p className="font-display text-lg text-ink">Daily Reflection</p>
+        <p className="mt-1 italic">“{reflectionQuote}”</p>
       </div>
     </section>
   );
