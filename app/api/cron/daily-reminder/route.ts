@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@/lib/server/supabase-admin";
 import { isAuthorizedCronRequest } from "@/lib/server/env";
 import { sendEmail } from "@/lib/server/email";
+import { buildDailyReminderEmail } from "@/lib/server/email-templates";
 
 export async function POST(request: Request) {
   if (!isAuthorizedCronRequest(request)) {
@@ -27,7 +28,7 @@ export async function POST(request: Request) {
       await sendEmail({
         to: profile.email,
         subject: "Do your time",
-        html: `<p>Friendly 4pm nudge to log your day.</p><p><a href="${appUrl}/week">Open Time Tracker</a></p>`
+        html: buildDailyReminderEmail({ appUrl })
       });
 
       await supabase.from("email_jobs").upsert(

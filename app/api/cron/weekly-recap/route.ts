@@ -3,6 +3,7 @@ import { createAdminSupabaseClient } from "@/lib/server/supabase-admin";
 import { isAuthorizedCronRequest } from "@/lib/server/env";
 import { sendEmail } from "@/lib/server/email";
 import { formatHours, listUserSummariesForCurrentWeek, weekLabel } from "@/lib/server/time-report";
+import { buildWeeklyRecapEmail } from "@/lib/server/email-templates";
 
 export async function POST(request: Request) {
   if (!isAuthorizedCronRequest(request)) {
@@ -21,16 +22,14 @@ export async function POST(request: Request) {
       await sendEmail({
         to: summary.email,
         subject: "Weekly time recap",
-        html: `
-          <h2>Week ending ${weekLabel()}</h2>
-          <ul>
-            <li>Total: ${formatHours(summary.totalMinutes)}</li>
-            <li>Client work: ${formatHours(summary.clientMinutes)}</li>
-            <li>Internal: ${formatHours(summary.internalMinutes)}</li>
-            <li>Exercise: ${formatHours(summary.exerciseMinutes)}</li>
-          </ul>
-          <p><a href="${process.env.APP_URL ?? "https://time.mondayandpartners.com"}/trends">View Trends</a></p>
-        `
+        html: buildWeeklyRecapEmail({
+          appUrl: process.env.APP_URL ?? "https://time.mondayandpartners.com",
+          weekEndingLabel: weekLabel(),
+          totalHours: formatHours(summary.totalMinutes),
+          clientHours: formatHours(summary.clientMinutes),
+          internalHours: formatHours(summary.internalMinutes),
+          exerciseHours: formatHours(summary.exerciseMinutes)
+        })
       });
 
       await supabase.from("email_jobs").upsert(
