@@ -24,36 +24,36 @@ const WEEK_LINE_STORAGE_PREFIX = "mp-time-week-lines";
 const QUICK_TAG_STORAGE_KEY = "mp-time-quick-tags";
 const REFLECTION_QUOTES = [
   {
-    text: "Time is not what the clock says; it is what your attention becomes.",
-    author: "M+P Reflection"
+    text: "It is not that we have a short time to live, but that we waste a lot of it.",
+    author: "Seneca"
   },
   {
-    text: "A useful day is not a packed day. It is a day spent on what matters.",
-    author: "M+P Reflection"
+    text: "You have power over your mind - not outside events. Realize this, and you will find strength.",
+    author: "Marcus Aurelius"
   },
   {
-    text: "You are always becoming someone through what you choose to do next.",
-    author: "M+P Reflection"
+    text: "The impediment to action advances action. What stands in the way becomes the way.",
+    author: "Marcus Aurelius"
   },
   {
-    text: "Productivity without presence is motion without meaning.",
-    author: "M+P Reflection"
+    text: "No man is free who is not master of himself.",
+    author: "Epictetus"
   },
   {
-    text: "Build a life that feels alive, not just a schedule that looks full.",
-    author: "M+P Reflection"
+    text: "Waste no more time arguing what a good man should be. Be one.",
+    author: "Marcus Aurelius"
   },
   {
-    text: "Your hours are your philosophy made visible.",
-    author: "M+P Reflection"
+    text: "How we spend our days is, of course, how we spend our lives.",
+    author: "Annie Dillard"
   },
   {
-    text: "What you repeat becomes your identity, one quiet block at a time.",
-    author: "M+P Reflection"
+    text: "Things do not happen. Things are made to happen.",
+    author: "John F. Kennedy"
   },
   {
-    text: "The point is not to do everything. The point is to do the right things deeply.",
-    author: "M+P Reflection"
+    text: "I am not what happened to me, I am what I choose to become.",
+    author: "Carl Jung"
   }
 ];
 
