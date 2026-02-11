@@ -21,6 +21,7 @@ import type { ClientOption, DraftEntry, ProjectOption, WeekLine } from "@/lib/ty
 const BUSINESS_DAY_INDEXES = [1, 2, 3, 4, 5];
 const ALL_DAY_INDEXES = [1, 2, 3, 4, 5, 6, 7];
 const WEEK_LINE_STORAGE_PREFIX = "mp-time-week-lines";
+const QUICK_TAG_STORAGE_KEY = "mp-time-quick-tags";
 const REFLECTION_QUOTES = [
   "Time is not what the clock says; it is what your attention becomes.",
   "A useful day is not a packed day. It is a day spent on what matters.",
@@ -55,6 +56,7 @@ export function WeekGrid() {
   const [quickClient, setQuickClient] = useState("");
   const [quickProject, setQuickProject] = useState("");
   const [quickTags, setQuickTags] = useState("");
+  const [savedQuickTags, setSavedQuickTags] = useState<string[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -101,6 +103,26 @@ export function WeekGrid() {
       setPinnedProjectIds([]);
     }
   }, [weekKey]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = window.localStorage.getItem(QUICK_TAG_STORAGE_KEY);
+    if (!raw) return;
+
+    try {
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return;
+
+      setSavedQuickTags(
+        parsed
+          .filter((tag): tag is string => typeof tag === "string")
+          .map((tag) => tag.trim())
+          .filter(Boolean)
+      );
+    } catch {
+      setSavedQuickTags([]);
+    }
+  }, []);
 
   const refreshWeekData = useCallback(async () => {
     if (!user || !supabase) return;
@@ -199,6 +221,16 @@ export function WeekGrid() {
     return projects.filter((project) => project.clientId === client.id);
   }, [clients, projects, quickClient]);
 
+  const quickTagSuggestions = useMemo(() => {
+    const seen = new Set<string>();
+    return savedQuickTags.filter((tag) => {
+      const key = tag.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [savedQuickTags]);
+
   const handleQuickAddSave = async () => {
     if (!user || !supabase || !quickClient.trim() || !quickProject.trim()) {
       return;
@@ -242,6 +274,19 @@ export function WeekGrid() {
 
       setQuickClient("");
       setQuickProject("");
+      const parsedTags = quickTags
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean);
+      if (parsedTags.length) {
+        const nextSavedTags = [...parsedTags, ...savedQuickTags]
+          .filter((tag, index, all) => all.findIndex((item) => item.toLowerCase() === tag.toLowerCase()) === index)
+          .slice(0, 40);
+        setSavedQuickTags(nextSavedTags);
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem(QUICK_TAG_STORAGE_KEY, JSON.stringify(nextSavedTags));
+        }
+      }
       setQuickTags("");
       setShowQuickAdd(false);
       await refreshWeekData();
@@ -519,12 +564,18 @@ export function WeekGrid() {
                   Tags (optional)
                 </span>
                 <input
+                  list="tag-options"
                   type="text"
                   value={quickTags}
                   onChange={(event) => setQuickTags(event.target.value)}
                   placeholder="strategy, social, production"
                   className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-black/30"
                 />
+                <datalist id="tag-options">
+                  {quickTagSuggestions.map((tag) => (
+                    <option key={tag} value={tag} />
+                  ))}
+                </datalist>
               </label>
             </div>
 
