@@ -7,6 +7,11 @@ export function requireEnv(name: string): string {
 }
 
 export function isAuthorizedCronRequest(request: Request): boolean {
+  // Vercel Cron requests include this header.
+  if (request.headers.get("x-vercel-cron")) {
+    return true;
+  }
+
   const expected = process.env.CRON_SECRET;
   if (!expected) {
     return false;
