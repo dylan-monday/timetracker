@@ -90,6 +90,7 @@ export function WeekGrid() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [syncingCalendar, setSyncingCalendar] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [draftActionId, setDraftActionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pinnedProjectIds, setPinnedProjectIds] = useState<string[]>([]);
@@ -394,11 +395,13 @@ export function WeekGrid() {
   const handleCalendarSync = async () => {
     if (!session?.access_token || !session?.provider_token) {
       setError("Calendar access needs a fresh Google sign-in. Sign out and sign in again, then sync.");
+      setSyncMessage(null);
       return;
     }
 
     setSyncingCalendar(true);
     setError(null);
+    setSyncMessage(null);
 
     try {
       const response = await fetch("/api/calendar/sync", {
@@ -412,10 +415,28 @@ export function WeekGrid() {
         })
       });
 
+      const payload = (await response.json().catch(() => null)) as
+        | {
+            ok?: boolean;
+            error?: string;
+            imported?: number;
+            updated?: number;
+            calendarsScanned?: number;
+          }
+        | null;
+
       if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
         throw new Error(payload?.error ?? "Calendar sync failed.");
       }
+
+      const imported = payload?.imported ?? 0;
+      const updated = payload?.updated ?? 0;
+      const calendarsScanned = payload?.calendarsScanned ?? 0;
+      setSyncMessage(
+        imported || updated
+          ? `Calendar sync complete: ${imported} imported, ${updated} updated across ${calendarsScanned} calendars.`
+          : `Calendar sync complete: no events imported. Scanned ${calendarsScanned} calendars for this week.`
+      );
 
       await refreshWeekData();
     } catch (err) {
@@ -464,6 +485,7 @@ export function WeekGrid() {
         </div>
 
         {error ? <p className="mb-3 text-xs text-danger">{error}</p> : null}
+        {syncMessage ? <p className="mb-3 text-xs text-muted">{syncMessage}</p> : null}
 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] border-separate border-spacing-y-2 text-sm">

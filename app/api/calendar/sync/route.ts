@@ -291,7 +291,13 @@ export async function POST(request: Request) {
       if (!calendar.id) return false;
       if (calendar.primary) return true;
       const normalizedId = calendar.id.toLowerCase();
-      return normalizedId.endsWith("@mondayandpartners.com") || normalizedId.endsWith("@natrx.io");
+      const normalizedSummary = (calendar.summary ?? "").toLowerCase();
+      return (
+        normalizedId.endsWith("@mondayandpartners.com") ||
+        normalizedId.endsWith("@natrx.io") ||
+        normalizedSummary.includes("monday") ||
+        normalizedSummary.includes("natrx")
+      );
     });
 
     let imported = 0;
