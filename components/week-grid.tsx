@@ -470,75 +470,85 @@ export function WeekGrid() {
       </div>
 
       {showQuickAdd ? (
-        <aside className="fixed inset-x-0 bottom-0 z-20 rounded-t-3xl border border-black/10 bg-panel p-4 shadow-[0_-20px_50px_rgba(0,0,0,0.14)] sm:mx-auto sm:mb-6 sm:max-w-xl">
-          <h2 className="text-base font-semibold">Quick add line</h2>
-          <p className="mt-1 text-sm text-muted">Client and project can be selected or created in place.</p>
+        <div
+          className="fixed inset-0 z-20 bg-black/18 backdrop-blur-[1px]"
+          onClick={() => setShowQuickAdd(false)}
+        >
+          <aside
+            className="fixed inset-x-0 bottom-0 z-30 rounded-t-3xl border border-black/10 bg-panel p-4 shadow-[0_-20px_50px_rgba(0,0,0,0.14)] sm:inset-x-auto sm:left-1/2 sm:mx-auto sm:mb-6 sm:w-full sm:max-w-xl sm:-translate-x-1/2 sm:rounded-3xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 className="text-base font-semibold">Quick add line</h2>
+            <p className="mt-1 text-sm text-muted">Client and project can be selected or created in place.</p>
 
-          <div className="mt-4 space-y-3">
-            <label className="block">
-              <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted">Client</span>
-              <input
-                list="client-options"
-                type="text"
-                value={quickClient}
-                onChange={(event) => setQuickClient(event.target.value)}
-                placeholder="Pick existing or create new"
-                className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-black/30"
-              />
-              <datalist id="client-options">
-                {clients.map((client) => (
-                  <option key={client.id} value={client.name} />
-                ))}
-              </datalist>
-            </label>
-            <label className="block">
-              <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted">Project</span>
-              <input
-                list="project-options"
-                type="text"
-                value={quickProject}
-                onChange={(event) => setQuickProject(event.target.value)}
-                placeholder="Pick existing or create new"
-                className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-black/30"
-              />
-              <datalist id="project-options">
-                {filteredProjects.map((project) => (
-                  <option key={project.id} value={project.name} />
-                ))}
-              </datalist>
-            </label>
-            <label className="block">
-              <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted">Tags (optional)</span>
-              <input
-                type="text"
-                value={quickTags}
-                onChange={(event) => setQuickTags(event.target.value)}
-                placeholder="strategy, social, production"
-                className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-black/30"
-              />
-            </label>
-          </div>
+            <div className="mt-4 space-y-3">
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted">Client</span>
+                <input
+                  list="client-options"
+                  type="text"
+                  value={quickClient}
+                  onChange={(event) => setQuickClient(event.target.value)}
+                  placeholder="Pick existing or create new"
+                  className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-black/30"
+                />
+                <datalist id="client-options">
+                  {clients.map((client) => (
+                    <option key={client.id} value={client.name} />
+                  ))}
+                </datalist>
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted">Project</span>
+                <input
+                  list="project-options"
+                  type="text"
+                  value={quickProject}
+                  onChange={(event) => setQuickProject(event.target.value)}
+                  placeholder="Pick existing or create new"
+                  className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-black/30"
+                />
+                <datalist id="project-options">
+                  {filteredProjects.map((project) => (
+                    <option key={project.id} value={project.name} />
+                  ))}
+                </datalist>
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted">
+                  Tags (optional)
+                </span>
+                <input
+                  type="text"
+                  value={quickTags}
+                  onChange={(event) => setQuickTags(event.target.value)}
+                  placeholder="strategy, social, production"
+                  className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-black/30"
+                />
+              </label>
+            </div>
 
-          <div className="mt-5 flex gap-2">
-            <button
-              type="button"
-              className="flex-1 rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium"
-              onClick={() => setShowQuickAdd(false)}
-            >
-              Close
-            </button>
-            <button
-              type="button"
-              className="flex-1 rounded-full bg-ink px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-              onClick={() => {
-                void handleQuickAddSave();
-              }}
-              disabled={saving || !quickClient.trim() || !quickProject.trim()}
-            >
-              Save line
-            </button>
-          </div>
-        </aside>
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                className="flex-1 rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium"
+                onClick={() => setShowQuickAdd(false)}
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                className="flex-1 rounded-full bg-ink px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                onClick={() => {
+                  void handleQuickAddSave();
+                }}
+                disabled={saving || !quickClient.trim() || !quickProject.trim()}
+              >
+                Save line
+              </button>
+            </div>
+          </aside>
+        </div>
       ) : null}
 
       <div className="rounded-2xl border border-black/5 bg-panel p-4 shadow-soft">
