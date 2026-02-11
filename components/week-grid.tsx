@@ -23,14 +23,38 @@ const ALL_DAY_INDEXES = [1, 2, 3, 4, 5, 6, 7];
 const WEEK_LINE_STORAGE_PREFIX = "mp-time-week-lines";
 const QUICK_TAG_STORAGE_KEY = "mp-time-quick-tags";
 const REFLECTION_QUOTES = [
-  "Time is not what the clock says; it is what your attention becomes.",
-  "A useful day is not a packed day. It is a day spent on what matters.",
-  "You are always becoming someone through what you choose to do next.",
-  "Productivity without presence is motion without meaning.",
-  "Build a life that feels alive, not just a schedule that looks full.",
-  "Your hours are your philosophy made visible.",
-  "What you repeat becomes your identity, one quiet block at a time.",
-  "The point is not to do everything. The point is to do the right things deeply."
+  {
+    text: "Time is not what the clock says; it is what your attention becomes.",
+    author: "M+P Reflection"
+  },
+  {
+    text: "A useful day is not a packed day. It is a day spent on what matters.",
+    author: "M+P Reflection"
+  },
+  {
+    text: "You are always becoming someone through what you choose to do next.",
+    author: "M+P Reflection"
+  },
+  {
+    text: "Productivity without presence is motion without meaning.",
+    author: "M+P Reflection"
+  },
+  {
+    text: "Build a life that feels alive, not just a schedule that looks full.",
+    author: "M+P Reflection"
+  },
+  {
+    text: "Your hours are your philosophy made visible.",
+    author: "M+P Reflection"
+  },
+  {
+    text: "What you repeat becomes your identity, one quiet block at a time.",
+    author: "M+P Reflection"
+  },
+  {
+    text: "The point is not to do everything. The point is to do the right things deeply.",
+    author: "M+P Reflection"
+  }
 ];
 
 function stateClass(state: "ok" | "attention" | "gap"): string {
@@ -45,7 +69,7 @@ function isWeekendIsoDate(isoDate: string): boolean {
 }
 
 export function WeekGrid() {
-  const { supabase, user } = useAuth();
+  const { session, supabase, user } = useAuth();
   const weekDays = useMemo(() => makeWeekDays(), []);
 
   const [showWeekends, setShowWeekends] = useState(false);
@@ -65,6 +89,7 @@ export function WeekGrid() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [syncingCalendar, setSyncingCalendar] = useState(false);
   const [draftActionId, setDraftActionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pinnedProjectIds, setPinnedProjectIds] = useState<string[]>([]);
@@ -366,6 +391,40 @@ export function WeekGrid() {
     }
   };
 
+  const handleCalendarSync = async () => {
+    if (!session?.access_token || !session?.provider_token) {
+      setError("Calendar access needs a fresh Google sign-in. Sign out and sign in again, then sync.");
+      return;
+    }
+
+    setSyncingCalendar(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/calendar/sync", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          providerAccessToken: session.provider_token
+        })
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(payload?.error ?? "Calendar sync failed.");
+      }
+
+      await refreshWeekData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Calendar sync failed.");
+    } finally {
+      setSyncingCalendar(false);
+    }
+  };
+
   return (
     <section className="space-y-4">
       <div className="rounded-2xl border border-black/5 bg-panel p-4 shadow-soft">
@@ -389,6 +448,17 @@ export function WeekGrid() {
               onClick={() => setShowWeekends((value) => !value)}
             >
               {showWeekends ? "Hide weekends" : "Show weekends"}
+            </button>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white px-3 py-1.5 text-sm font-medium disabled:opacity-50"
+              onClick={() => {
+                void handleCalendarSync();
+              }}
+              disabled={syncingCalendar}
+            >
+              <RefreshCw className={`h-4 w-4 ${syncingCalendar ? "animate-spin" : ""}`} />
+              {syncingCalendar ? "Syncing calendars..." : "Sync calendars"}
             </button>
           </div>
         </div>
@@ -684,9 +754,12 @@ export function WeekGrid() {
         )}
       </div>
 
-      <p className="font-display py-2 text-center text-xl leading-tight text-black/28 italic sm:text-2xl">
-        “{reflectionQuote}”
-      </p>
+      <div className="py-2 text-center">
+        <p className="font-display text-xl leading-tight text-black/24 italic sm:text-2xl">
+          “{reflectionQuote.text}”
+        </p>
+        <p className="font-display mt-1 text-sm text-black/22 sm:text-base">- {reflectionQuote.author}</p>
+      </div>
     </section>
   );
 }

@@ -70,7 +70,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const redirectTo = `${window.location.origin}/week`;
         const { error } = await supabase.auth.signInWithOAuth({
           provider: "google",
-          options: { redirectTo }
+          options: {
+            redirectTo,
+            scopes: "openid email profile https://www.googleapis.com/auth/calendar.readonly",
+            queryParams: {
+              access_type: "offline",
+              prompt: "consent"
+            }
+          }
         });
 
         if (error) {
