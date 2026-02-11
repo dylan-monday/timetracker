@@ -146,7 +146,9 @@ export default function TrendsPage() {
           {cards.map((card) => (
             <article key={card.label} className="rounded-xl bg-white p-3">
               <p className="text-xs uppercase tracking-wide text-muted">{card.label}</p>
-              <p className="mt-1 text-2xl font-semibold tracking-tight">{loading ? "..." : card.value}</p>
+              <p className="font-numeric mt-1 text-2xl font-semibold tracking-tight">
+                {loading ? "..." : card.value}
+              </p>
               <p className="text-xs text-muted">{card.detail}</p>
             </article>
           ))}

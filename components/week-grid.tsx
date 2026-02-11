@@ -347,9 +347,13 @@ export function WeekGrid() {
                         <span>
                           {day.label} {day.day}
                         </span>
-                        <span className="text-[11px] font-medium text-muted">{minutesToDisplay(minutes)}</span>
+                        <span className="font-numeric text-[11px] font-medium text-muted">
+                          {minutesToDisplay(minutes)}
+                        </span>
                       </div>
-                      <div className={`rounded-full px-2 py-1 text-[11px] font-medium ${stateClass(status)}`}>
+                      <div
+                        className={`font-numeric rounded-full px-2 py-1 text-[11px] font-medium ${stateClass(status)}`}
+                      >
                         {status === "ok"
                           ? "On track"
                           : `${Math.round(missingMinutes(minutes) / 60)}h open (8-5)`}
@@ -414,7 +418,7 @@ export function WeekGrid() {
                             }}
                             className="w-full rounded-lg border border-transparent px-2 py-1.5 text-left text-sm transition hover:border-black/10 hover:bg-canvas"
                           >
-                            {minutesToDisplay(value)}
+                            <span className="font-numeric">{minutesToDisplay(value)}</span>
                           </button>
                         )}
                       </td>

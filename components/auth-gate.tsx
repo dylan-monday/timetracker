@@ -37,7 +37,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-accentStrong shadow-[0_0_14px_rgba(88,200,87,.8)]" />
           </div>
 
-          <h1 className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
+          <h1 className="font-display text-5xl font-semibold tracking-tight text-ink sm:text-6xl">
             Track the work.
             <br />
             Keep the signal.
