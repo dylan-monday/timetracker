@@ -544,6 +544,7 @@ export function WeekGrid() {
             imported?: number;
             updated?: number;
             calendarsScanned?: number;
+            sourceErrors?: Array<{ source?: string; error?: string }>;
           }
         | null;
 
@@ -554,10 +555,20 @@ export function WeekGrid() {
       const imported = payload?.imported ?? 0;
       const updated = payload?.updated ?? 0;
       const calendarsScanned = payload?.calendarsScanned ?? 0;
-      setSyncMessage(
+      const baseMessage =
         imported || updated
           ? `Calendar sync complete: ${imported} imported, ${updated} updated across ${calendarsScanned} calendars.`
-          : `Calendar sync complete: no events imported. Scanned ${calendarsScanned} calendars for this week.`
+          : `Calendar sync complete: no events imported. Scanned ${calendarsScanned} calendars for this week.`;
+      const sourceErrors = (payload?.sourceErrors ?? []).filter(
+        (item) => (item?.source ?? "").trim() && (item?.error ?? "").trim()
+      );
+      setSyncMessage(
+        sourceErrors.length
+          ? `${baseMessage} Issues: ${sourceErrors
+              .slice(0, 2)
+              .map((item) => `${item.source}: ${item.error}`)
+              .join(" | ")}`
+          : baseMessage
       );
 
       await refreshWeekData();

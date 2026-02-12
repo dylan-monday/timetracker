@@ -263,92 +263,105 @@ export async function POST(request: Request) {
 
     let imported = 0;
     let scannedEvents = 0;
+    const sourceErrors: Array<{ source: string; error: string }> = [];
 
     for (const source of feedSources ?? []) {
-      const feedUrl = String(source.feed_url ?? "").trim();
-      if (!feedUrl || !feedUrl.startsWith("https://")) {
-        continue;
-      }
-
-      const response = await fetch(feedUrl, { headers: { "User-Agent": "M+P-Time-Sync/1.0" } });
-      if (!response.ok) {
-        throw new Error(`Feed fetch failed for \"${source.name}\" (${response.status}).`);
-      }
-
-      const rawIcs = await response.text();
-      const events = parseIcsEvents(rawIcs, timeMin, timeMax);
-
-      for (const event of events) {
-        scannedEvents += 1;
-
-        if (isPlaceholderEventTitle(event.title)) {
+      try {
+        const feedUrl = String(source.feed_url ?? "").trim();
+        if (!feedUrl || !feedUrl.startsWith("https://")) {
+          sourceErrors.push({ source: source.name, error: "Feed URL must start with https://." });
           continue;
         }
 
-        const searchableText = normalizeText([event.title, event.description].join(" "));
-        const guess = chooseProjectForEvent({
-          searchableText,
-          projects: (projects ?? []) as CandidateProject[]
-        });
-
-        const externalEventId = `${source.id}:${event.uid}:${event.startsAt.toISOString()}`;
-        const payload = {
-          sourceName: source.name,
-          sourceUrl: source.feed_url,
-          description: event.description
-        };
-
-        const { data: calendarEvent, error: calendarEventError } = await supabase
-          .from("calendar_events")
-          .upsert(
-            {
-              owner_id: userId,
-              external_event_id: externalEventId,
-              calendar_id: `feed:${source.id}`,
-              title: event.title,
-              starts_at: event.startsAt.toISOString(),
-              ends_at: event.endsAt.toISOString(),
-              guessed_client_id: guess.clientId,
-              guessed_project_id: guess.projectId,
-              confidence: guess.confidence,
-              payload
-            },
-            {
-              onConflict: "owner_id,calendar_id,external_event_id"
-            }
-          )
-          .select("id")
-          .single();
-
-        if (calendarEventError) throw calendarEventError;
-
-        const { data: categorizedEntry, error: categorizedEntryError } = await supabase
-          .from("time_entries")
-          .select("id")
-          .eq("owner_id", userId)
-          .eq("calendar_event_id", calendarEvent.id)
-          .neq("status", "draft")
-          .limit(1)
-          .maybeSingle();
-        if (categorizedEntryError) throw categorizedEntryError;
-        if (categorizedEntry?.id) {
+        const response = await fetch(feedUrl, { headers: { "User-Agent": "M+P-Time-Sync/1.0" } });
+        if (!response.ok) {
+          sourceErrors.push({
+            source: source.name,
+            error: `Feed fetch failed with status ${response.status}.`
+          });
           continue;
         }
 
-        const { error: insertError } = await supabase.from("time_entries").insert({
-          owner_id: userId,
-          project_id: guess.projectId,
-          entry_date: format(event.startsAt, "yyyy-MM-dd"),
-          rounded_minutes: event.roundedMinutes,
-          status: "draft",
-          source: "calendar",
-          tags: ["calendar", "feed"],
-          notes: event.title,
-          calendar_event_id: calendarEvent.id
-        });
-        if (insertError) throw insertError;
+        const rawIcs = await response.text();
+        const events = parseIcsEvents(rawIcs, timeMin, timeMax);
 
-        imported += 1;
+        for (const event of events) {
+          scannedEvents += 1;
+
+          if (isPlaceholderEventTitle(event.title)) {
+            continue;
+          }
+
+          const searchableText = normalizeText([event.title, event.description].join(" "));
+          const guess = chooseProjectForEvent({
+            searchableText,
+            projects: (projects ?? []) as CandidateProject[]
+          });
+
+          const externalEventId = `${source.id}:${event.uid}:${event.startsAt.toISOString()}`;
+          const payload = {
+            sourceName: source.name,
+            sourceUrl: source.feed_url,
+            description: event.description
+          };
+
+          const { data: calendarEvent, error: calendarEventError } = await supabase
+            .from("calendar_events")
+            .upsert(
+              {
+                owner_id: userId,
+                external_event_id: externalEventId,
+                calendar_id: `feed:${source.id}`,
+                title: event.title,
+                starts_at: event.startsAt.toISOString(),
+                ends_at: event.endsAt.toISOString(),
+                guessed_client_id: guess.clientId,
+                guessed_project_id: guess.projectId,
+                confidence: guess.confidence,
+                payload
+              },
+              {
+                onConflict: "owner_id,calendar_id,external_event_id"
+              }
+            )
+            .select("id")
+            .single();
+
+          if (calendarEventError) throw calendarEventError;
+
+          const { data: categorizedEntry, error: categorizedEntryError } = await supabase
+            .from("time_entries")
+            .select("id")
+            .eq("owner_id", userId)
+            .eq("calendar_event_id", calendarEvent.id)
+            .neq("status", "draft")
+            .limit(1)
+            .maybeSingle();
+          if (categorizedEntryError) throw categorizedEntryError;
+          if (categorizedEntry?.id) {
+            continue;
+          }
+
+          const { error: insertError } = await supabase.from("time_entries").insert({
+            owner_id: userId,
+            project_id: guess.projectId,
+            entry_date: format(event.startsAt, "yyyy-MM-dd"),
+            rounded_minutes: event.roundedMinutes,
+            status: "draft",
+            source: "calendar",
+            tags: ["calendar", "feed"],
+            notes: event.title,
+            calendar_event_id: calendarEvent.id
+          });
+          if (insertError) throw insertError;
+
+          imported += 1;
+        }
+      } catch (sourceError) {
+        sourceErrors.push({
+          source: source.name,
+          error: sourceError instanceof Error ? sourceError.message : "Unknown source error."
+        });
       }
     }
 
@@ -358,6 +371,7 @@ export async function POST(request: Request) {
       updated: 0,
       calendarsScanned: (feedSources ?? []).length,
       eventsScanned: scannedEvents,
+      sourceErrors,
       range: {
         start: weekStartIso,
         end: weekEndIso
