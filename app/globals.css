@@ -30,17 +30,17 @@ body {
   0% {
     transform: translate3d(0, 0, 0) scale(1);
     opacity: 0.42;
-    filter: hue-rotate(0deg);
+    background-color: rgba(132, 225, 120, 0.22);
   }
   50% {
-    transform: translate3d(18px, -14px, 0) scale(1.08);
+    transform: translate3d(28px, -20px, 0) scale(1.12);
     opacity: 0.56;
-    filter: hue-rotate(8deg);
+    background-color: rgba(165, 226, 118, 0.24);
   }
   100% {
     transform: translate3d(0, 0, 0) scale(1);
     opacity: 0.42;
-    filter: hue-rotate(0deg);
+    background-color: rgba(132, 225, 120, 0.22);
   }
 }
 
@@ -48,22 +48,22 @@ body {
   0% {
     transform: translate3d(0, 0, 0) scale(1);
     opacity: 0.3;
-    filter: hue-rotate(0deg);
+    background-color: rgba(143, 205, 255, 0.3);
   }
   50% {
-    transform: translate3d(-22px, 12px, 0) scale(1.12);
+    transform: translate3d(-30px, 18px, 0) scale(1.16);
     opacity: 0.42;
-    filter: hue-rotate(-10deg);
+    background-color: rgba(168, 216, 255, 0.32);
   }
   100% {
     transform: translate3d(0, 0, 0) scale(1);
     opacity: 0.3;
-    filter: hue-rotate(0deg);
+    background-color: rgba(143, 205, 255, 0.3);
   }
 }
 
 .ambient-orb {
-  will-change: transform, opacity, filter;
+  will-change: transform, opacity, background-color;
 }
 
 .ambient-orb-a {
