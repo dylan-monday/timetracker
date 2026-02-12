@@ -29,9 +29,15 @@ function toErrorDetails(error: unknown): string {
       typeof maybe.hint === "string" ? maybe.hint : null
     ].filter(Boolean);
     if (parts.length) return parts.join(" | ");
+    try {
+      const json = JSON.stringify(error);
+      if (json && json !== "{}") return json;
+    } catch {
+      // noop
+    }
   }
   if (typeof error === "string" && error.trim()) return error;
-  return "Unknown source error.";
+  return String(error);
 }
 
 function normalizeText(value: string): string {
