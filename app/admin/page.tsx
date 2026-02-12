@@ -480,10 +480,7 @@ export default function AdminPage() {
   };
 
   return (
-    <AppShell
-      title="Admin Mode"
-      subtitle="Role-gated controls for clients, projects, and forward-only merge events."
-    >
+    <AppShell title="Admin Mode">
       {!isAdmin && !loading ? (
         <section className="rounded-2xl border border-black/10 bg-panel p-5 shadow-soft">
           <h2 className="text-base font-semibold">Admin access required</h2>

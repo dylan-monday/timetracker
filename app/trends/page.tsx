@@ -272,10 +272,7 @@ export default function TrendsPage() {
     );
 
   return (
-    <AppShell
-      title="Trends"
-      subtitle="Weekly, monthly, quarterly, yearly visibility into where your time goes."
-    >
+    <AppShell title="Trends">
       {error ? <p className="text-sm text-danger">{error}</p> : null}
 
       <section className="rounded-2xl border border-black/5 bg-panel p-4 shadow-soft">
