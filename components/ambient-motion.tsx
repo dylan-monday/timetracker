@@ -2,6 +2,37 @@
 
 import { useEffect, useRef } from "react";
 
+// Toggle this to switch between debug (obvious motion) and production (subtle motion)
+const DEBUG_MODE = true;
+
+// Debug: high visibility to confirm animation works
+// Production: subtle, premium, barely-there motion
+const config = DEBUG_MODE
+  ? {
+      baseOpacity: 0.7,
+      accentOpacity: 0.6,
+      edgeOpacity: 0.5,
+      baseBlur: 24,
+      accentBlur: 28,
+      edgeBlur: 8,
+      // More saturated, visible colors for debug
+      baseColor: "rgba(100, 200, 130, 0.5)",
+      accentColor: "rgba(100, 160, 220, 0.5)",
+      edgeColor: "rgba(180, 160, 120, 0.4)"
+    }
+  : {
+      baseOpacity: 0.35,
+      accentOpacity: 0.3,
+      edgeOpacity: 0.25,
+      baseBlur: 40,
+      accentBlur: 44,
+      edgeBlur: 20,
+      // Subtle, muted colors for production
+      baseColor: "rgba(109, 182, 140, 0.25)",
+      accentColor: "rgba(116, 163, 213, 0.25)",
+      edgeColor: "rgba(180, 165, 140, 0.2)"
+    };
+
 export function AmbientMotion() {
   const layerBaseRef = useRef<HTMLDivElement | null>(null);
   const layerAccentRef = useRef<HTMLDivElement | null>(null);
@@ -15,21 +46,25 @@ export function AmbientMotion() {
     const tick = (time: number) => {
       const t = time / 1000;
 
+      // Base layer - green tinted, top-left area
       const baseX = Math.sin(t * 0.16) * 96;
       const baseY = Math.cos(t * 0.14) * 72;
       const baseScale = 1.03 + Math.sin(t * 0.08) * 0.06;
       const baseRotate = Math.sin(t * 0.05) * 5;
 
+      // Accent layer - blue tinted, top-right area
       const accentX = Math.cos(t * 0.13) * 86;
       const accentY = Math.sin(t * 0.15) * 64;
       const accentScale = 1.02 + Math.cos(t * 0.07) * 0.08;
       const accentRotate = Math.cos(t * 0.06) * -7;
 
+      // Edge layer - warm neutral, center area
       const edgeX = Math.sin(t * 0.11) * 64;
       const edgeY = Math.cos(t * 0.12) * 54;
       const edgeScale = 1 + Math.sin(t * 0.09) * 0.05;
       const edgeRotate = Math.cos(t * 0.05) * 4;
 
+      // Probe indicator
       const probeX = Math.sin(t * 1.05) * 22;
 
       if (layerBaseRef.current) {
@@ -64,42 +99,45 @@ export function AmbientMotion() {
 
   return (
     <div className="pointer-events-none fixed inset-0 z-[1] overflow-hidden">
+      {/* Base layer - green, top-left */}
       <div
         ref={layerBaseRef}
-        className="absolute -left-[25vw] -top-[18vh] h-[76vh] w-[72vw] rounded-[28%] blur-[32px]"
+        className="absolute -left-[20vw] -top-[15vh] h-[80vh] w-[75vw] rounded-[40%]"
         style={{
-          background:
-            "radial-gradient(circle at 42% 42%, rgba(109,182,140,0.36) 0%, rgba(109,182,140,0.16) 48%, rgba(109,182,140,0) 74%)",
-          mixBlendMode: "multiply",
-          opacity: 0.46
+          background: `radial-gradient(circle at 45% 45%, ${config.baseColor} 0%, transparent 70%)`,
+          filter: `blur(${config.baseBlur}px)`,
+          opacity: config.baseOpacity
         }}
       />
+      {/* Accent layer - blue, top-right */}
       <div
         ref={layerAccentRef}
-        className="absolute -right-[22vw] top-[8vh] h-[68vh] w-[62vw] rounded-[24%] blur-[34px]"
+        className="absolute -right-[18vw] top-[5vh] h-[72vh] w-[65vw] rounded-[35%]"
         style={{
-          background:
-            "radial-gradient(circle at 50% 48%, rgba(116,163,213,0.38) 0%, rgba(116,163,213,0.18) 50%, rgba(116,163,213,0) 76%)",
-          mixBlendMode: "multiply",
-          opacity: 0.42
+          background: `radial-gradient(circle at 55% 50%, ${config.accentColor} 0%, transparent 70%)`,
+          filter: `blur(${config.accentBlur}px)`,
+          opacity: config.accentOpacity
         }}
       />
+      {/* Edge layer - warm neutral, center */}
       <div
         ref={layerEdgeRef}
-        className="absolute left-[24vw] top-[34vh] h-[44vh] w-[44vw] rounded-[22%] border border-[#3e5568]/35 blur-[10px]"
+        className="absolute left-[20vw] top-[30vh] h-[50vh] w-[50vw] rounded-[30%]"
         style={{
-          background:
-            "radial-gradient(circle at 45% 45%, rgba(79,109,135,0.18) 0%, rgba(79,109,135,0.07) 50%, rgba(79,109,135,0) 76%)",
-          mixBlendMode: "multiply",
-          opacity: 0.34
+          background: `radial-gradient(circle at 50% 50%, ${config.edgeColor} 0%, transparent 65%)`,
+          filter: `blur(${config.edgeBlur}px)`,
+          opacity: config.edgeOpacity
         }}
       />
-      <div
-        ref={probeRef}
-        className="fixed bottom-2 left-[5.2rem] z-[70] flex h-4 w-16 items-center rounded-full border border-black/20 bg-black/10 px-1"
-      >
-        <div ref={probeDotRef} className="h-2 w-2 rounded-full bg-black/60" title="motion probe" />
-      </div>
+      {/* Motion probe - confirms animation loop is running */}
+      {DEBUG_MODE && (
+        <div
+          ref={probeRef}
+          className="fixed bottom-2 left-[5.2rem] z-[70] flex h-4 w-16 items-center rounded-full border border-black/30 bg-black/15 px-1"
+        >
+          <div ref={probeDotRef} className="h-2 w-2 rounded-full bg-black/70" title="motion probe" />
+        </div>
+      )}
     </div>
   );
 }
