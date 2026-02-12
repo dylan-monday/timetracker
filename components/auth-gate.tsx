@@ -25,18 +25,16 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   if (!user) {
     return (
       <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-canvas px-4">
-        <div className="pointer-events-none absolute -left-24 top-8 h-72 w-72 rounded-full bg-accent/30 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-0 right-0 h-80 w-80 rounded-full bg-sky-200/35 blur-3xl" />
+        <div className="ambient-orb ambient-orb-a pointer-events-none absolute -left-24 top-8 h-72 w-72 rounded-full bg-accent/30 blur-3xl" />
+        <div className="ambient-orb ambient-orb-b pointer-events-none absolute bottom-0 right-0 h-80 w-80 rounded-full bg-sky-200/35 blur-3xl" />
+        <div className="ambient-orb ambient-orb-c pointer-events-none absolute left-1/2 top-1/3 h-56 w-56 -translate-x-1/2 rounded-full bg-amber-100/20 blur-3xl" />
 
         <section className="w-full max-w-xl rounded-[1.6rem] border border-black/10 bg-panel/95 p-8 shadow-[0_20px_80px_rgba(17,19,24,0.12)] backdrop-blur">
-          <div className="mb-6 flex items-center justify-between">
-            <div className="inline-flex items-center rounded-full border border-black/10 bg-white/70 px-4 py-2">
-              <Image src="/MP26.svg" alt="M+P Time" width={176} height={36} className="h-8 w-auto sm:h-9" priority />
-            </div>
-            <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-accentStrong shadow-[0_0_14px_rgba(88,200,87,.8)]" />
+          <div className="mb-6 flex justify-center">
+            <Image src="/MP26.svg" alt="M+P Time" width={248} height={52} className="h-11 w-auto sm:h-12" priority />
           </div>
 
-          <h1 className="font-display text-5xl tracking-tight text-ink sm:text-6xl">
+          <h1 className="font-display text-center text-5xl tracking-tight text-ink sm:text-6xl">
             Track the work.
             <br />
             Keep the signal.
@@ -52,12 +50,12 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             Continue with Google
           </button>
 
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
+          <div className="mt-4 flex items-center justify-center text-center text-xs text-muted">
             <span>Only @mondayandpartners.com accounts are allowed.</span>
           </div>
 
           {!envReady ? (
-            <p className="mt-3 rounded-xl border border-danger/25 bg-danger/10 px-3 py-2 text-xs text-danger">
+            <p className="mt-3 rounded-xl border border-danger/25 bg-danger/10 px-3 py-2 text-center text-xs text-danger">
               Configure `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` to enable sign-in.
             </p>
           ) : null}
