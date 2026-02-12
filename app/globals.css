@@ -16,6 +16,10 @@ body {
   min-height: 100%;
 }
 
+html {
+  font-size: 100%;
+}
+
 body {
   font-family: var(--font-inter), "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   background:
@@ -183,6 +187,23 @@ body {
   .ambient-orb-b,
   .ambient-orb-c {
     animation-duration: 60s;
+  }
+}
+
+@media (max-width: 1024px) {
+  html {
+    font-size: 87.5%;
+  }
+}
+
+@media (max-width: 640px) {
+  html {
+    font-size: 75%;
+  }
+
+  .text-xs {
+    font-size: 0.833333rem;
+    line-height: 1.2;
   }
 }
 
