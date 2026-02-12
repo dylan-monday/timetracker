@@ -1,8 +1,6 @@
 import { addDays, endOfDay, format, startOfDay, startOfWeek } from "date-fns";
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { createAdminSupabaseClient } from "@/lib/server/supabase-admin";
-import { requireEnv } from "@/lib/server/env";
 
 interface CandidateProject {
   id: string;
@@ -200,21 +198,8 @@ function parseIcsEvents(raw: string, weekStart: Date, weekEnd: Date): ParsedIcsE
 }
 
 async function resolveUserIdFromAccessToken(accessToken: string): Promise<string | null> {
-  const url = requireEnv("NEXT_PUBLIC_SUPABASE_URL");
-  const anonKey = requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
-  const supabase = createClient(url, anonKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false
-    },
-    global: {
-      headers: {
-        Authorization: `Bearer ${accessToken}`
-      }
-    }
-  });
-
-  const { data, error } = await supabase.auth.getUser();
+  const supabase = createAdminSupabaseClient();
+  const { data, error } = await supabase.auth.getUser(accessToken);
   if (error || !data.user) {
     return null;
   }

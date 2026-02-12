@@ -27,6 +27,7 @@ export function AppShell({ title, subtitle, children }: AppShellProps) {
     <div className="relative min-h-screen overflow-hidden bg-canvas text-ink">
       <div className="ambient-orb ambient-orb-a pointer-events-none absolute -left-24 top-6 h-72 w-72 rounded-full bg-accent/20 blur-3xl" />
       <div className="ambient-orb ambient-orb-b pointer-events-none absolute right-8 top-12 h-48 w-48 rounded-full bg-sky-200/30 blur-3xl" />
+      <div className="ambient-orb ambient-orb-c pointer-events-none absolute left-1/2 top-1/3 h-56 w-56 -translate-x-1/2 rounded-full bg-amber-100/20 blur-3xl" />
 
       <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 pb-8 pt-6 sm:px-8 lg:px-12">
         <header className="flex items-center justify-between rounded-2xl border border-black/5 bg-gradient-to-r from-panel via-white/85 to-panel px-4 py-3 shadow-soft backdrop-blur">
@@ -39,7 +40,6 @@ export function AppShell({ title, subtitle, children }: AppShellProps) {
               className="h-7 w-auto sm:h-8"
               priority
             />
-            <div className="h-2.5 w-2.5 rounded-full bg-accentStrong shadow-[0_0_14px_rgba(88,200,87,.9)]" />
           </div>
           <nav className="flex items-center gap-1 rounded-xl border border-black/5 bg-white/60 p-1">
             {navItems.map((item) => {

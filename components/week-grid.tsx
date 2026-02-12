@@ -564,7 +564,6 @@ export function WeekGrid() {
     <section className="space-y-4">
       <div className="rounded-2xl border border-black/5 bg-panel p-4 shadow-soft">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-muted">Fast, human entry. Type `1.5`, `1h 30m`, or `90m`.</p>
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -721,8 +720,8 @@ export function WeekGrid() {
           <table className="w-full min-w-[760px] border-separate border-spacing-y-2 text-sm">
             <thead>
               <tr className="text-left text-xs tracking-wide text-muted">
-                <th className="px-3 py-2 uppercase">Line</th>
-                {visibleDayIndexes.map((dayIndex) => {
+                <th className="px-3 py-2 uppercase text-transparent">line</th>
+                {visibleDayIndexes.map((dayIndex, dayPosition) => {
                   const day = weekDays[dayIndex - 1];
                   const minutes = totalsByDay[dayIndex] ?? 0;
                   const status = missingState(minutes);
@@ -731,7 +730,9 @@ export function WeekGrid() {
                   return (
                     <th
                       key={day.isoDate}
-                      className={`px-3 py-2 ${isWeekend ? "rounded-xl bg-black/[0.03]" : ""}`}
+                      className={`px-3 py-2 ${isWeekend ? "rounded-xl bg-black/[0.03]" : ""} ${
+                        dayPosition > 0 ? "border-l border-black/10" : ""
+                      }`}
                     >
                       <div className="mb-2">
                         <p className="text-xs font-semibold uppercase tracking-wide text-muted">
@@ -778,7 +779,7 @@ export function WeekGrid() {
                       {line.isDraft ? " • draft approval" : ""}
                     </p>
                   </td>
-                  {visibleDayIndexes.map((dayIndex) => {
+                  {visibleDayIndexes.map((dayIndex, dayPosition) => {
                     const day = weekDays[dayIndex - 1];
                     const isWeekend = isWeekendIsoDate(day.isoDate);
                     const isActive =
@@ -788,7 +789,9 @@ export function WeekGrid() {
                     return (
                       <td
                         key={`${line.id}-${dayIndex}`}
-                        className={`px-3 py-2 ${isWeekend ? "bg-black/[0.03]" : ""}`}
+                        className={`px-3 py-2 ${isWeekend ? "bg-black/[0.03]" : ""} ${
+                          dayPosition > 0 ? "border-l border-black/10" : ""
+                        }`}
                       >
                         {isActive ? (
                           <input

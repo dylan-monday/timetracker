@@ -3,10 +3,7 @@ import { WeekGrid } from "@/components/week-grid";
 
 export default function WeekPage() {
   return (
-    <AppShell
-      title="Your Week"
-      subtitle="Fast capture, clear trend visibility, no accounting bloat."
-    >
+    <AppShell title="Your Week">
       <WeekGrid />
     </AppShell>
   );
