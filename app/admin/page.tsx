@@ -23,6 +23,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
 
   const [newClient, setNewClient] = useState("");
@@ -46,6 +47,7 @@ export default function AdminPage() {
 
     setLoading(true);
     setError(null);
+    setSuccess(null);
     const isEmailAdmin = user.email?.toLowerCase() === "dylan@mondayandpartners.com";
     setIsAdmin(isEmailAdmin);
 
@@ -163,6 +165,7 @@ export default function AdminPage() {
 
     setSaving(true);
     setError(null);
+    setSuccess(null);
 
     try {
       const { error: insertError } = await supabase.from("clients").insert({
@@ -188,6 +191,7 @@ export default function AdminPage() {
 
     setSaving(true);
     setError(null);
+    setSuccess(null);
 
     try {
       const { error: updateError } = await supabase.from("clients").update({ active: false }).eq("id", id);
@@ -205,6 +209,7 @@ export default function AdminPage() {
 
     setSaving(true);
     setError(null);
+    setSuccess(null);
 
     try {
       const { error: insertError } = await supabase.from("projects").insert({
@@ -230,6 +235,7 @@ export default function AdminPage() {
 
     setSaving(true);
     setError(null);
+    setSuccess(null);
 
     try {
       const { error: updateError } = await supabase.from("projects").update({ active: false }).eq("id", id);
@@ -251,6 +257,7 @@ export default function AdminPage() {
 
     setSaving(true);
     setError(null);
+    setSuccess(null);
 
     try {
       const { error: rpcError } = await supabase.rpc("apply_project_merge", {
@@ -292,6 +299,7 @@ export default function AdminPage() {
 
       if (updateError) throw updateError;
       await refresh();
+      setSuccess("Saved base hourly rate.");
     } catch (err) {
       setError(toErrorMessage(err, "Could not save hourly rate."));
     } finally {
@@ -311,6 +319,7 @@ export default function AdminPage() {
 
     setSaving(true);
     setError(null);
+    setSuccess(null);
 
     try {
       const { error: updateError } = await supabase
@@ -319,6 +328,7 @@ export default function AdminPage() {
         .eq("id", clientId);
       if (updateError) throw updateError;
       await refresh();
+      setSuccess("Saved client hourly rate.");
     } catch (err) {
       setError(toErrorMessage(err, "Could not save client hourly rate."));
     } finally {
@@ -344,6 +354,7 @@ export default function AdminPage() {
 
     setSaving(true);
     setError(null);
+    setSuccess(null);
 
     try {
       const { error: updateError } = await supabase
@@ -354,8 +365,16 @@ export default function AdminPage() {
         })
         .eq("id", projectId);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        if (updateError.code === "42703" && updateError.message.includes("hourly_rate_cents")) {
+          throw new Error(
+            "Project hourly rate column is missing in Supabase. Run: alter table public.projects add column if not exists hourly_rate_cents integer;"
+          );
+        }
+        throw updateError;
+      }
       await refresh();
+      setSuccess("Saved project budget and rate.");
     } catch (err) {
       setError(toErrorMessage(err, "Could not save project financials."));
     } finally {
@@ -368,6 +387,7 @@ export default function AdminPage() {
 
     setSaving(true);
     setError(null);
+    setSuccess(null);
 
     try {
       const feedUrl = newFeedUrl.trim();
@@ -398,6 +418,7 @@ export default function AdminPage() {
 
     setSaving(true);
     setError(null);
+    setSuccess(null);
 
     try {
       const { error: updateError } = await supabase
@@ -419,6 +440,7 @@ export default function AdminPage() {
 
     setSaving(true);
     setError(null);
+    setSuccess(null);
 
     try {
       const { error: deleteError } = await supabase.from("calendar_feed_sources").delete().eq("id", id);
@@ -448,6 +470,7 @@ export default function AdminPage() {
       {isAdmin ? (
         <>
       {error ? <p className="text-sm text-danger">{error}</p> : null}
+      {success ? <p className="text-sm text-[#2f7a4a]">{success}</p> : null}
 
       <section className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-2xl border border-black/5 bg-panel p-4 shadow-soft">
