@@ -6,6 +6,7 @@ export function AmbientMotion() {
   const layerARef = useRef<HTMLDivElement | null>(null);
   const layerBRef = useRef<HTMLDivElement | null>(null);
   const layerCRef = useRef<HTMLDivElement | null>(null);
+  const sheenRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let rafId = 0;
@@ -27,6 +28,8 @@ export function AmbientMotion() {
       const cY = Math.cos(t * 0.16) * 6;
       const cScale = 1.01 + Math.sin(t * 0.2) * 0.06;
       const cOpacity = 0.08 + (Math.sin(t * 0.22) + 1) * 0.05;
+      const sheenPos = (t * 18) % 200;
+      const sheenOpacity = 0.05 + (Math.sin(t * 0.3) + 1) * 0.025;
 
       if (layerARef.current) {
         layerARef.current.style.transform = `translate3d(${aX}%, ${aY}%, 0) scale(${aScale})`;
@@ -41,6 +44,11 @@ export function AmbientMotion() {
       if (layerCRef.current) {
         layerCRef.current.style.transform = `translate3d(${cX}%, ${cY}%, 0) scale(${cScale})`;
         layerCRef.current.style.opacity = String(cOpacity);
+      }
+
+      if (sheenRef.current) {
+        sheenRef.current.style.backgroundPosition = `${sheenPos}% 0`;
+        sheenRef.current.style.opacity = String(sheenOpacity);
       }
 
       rafId = window.requestAnimationFrame(tick);
@@ -77,6 +85,16 @@ export function AmbientMotion() {
         style={{
           background:
             "radial-gradient(circle, rgba(219,206,183,0.32) 0%, rgba(219,206,183,0) 74%)"
+        }}
+      />
+      <div
+        ref={sheenRef}
+        className="absolute inset-0"
+        style={{
+          backgroundImage:
+            "linear-gradient(105deg, rgba(255,255,255,0) 30%, rgba(255,255,255,0.14) 50%, rgba(255,255,255,0) 70%)",
+          backgroundSize: "180% 100%",
+          backgroundRepeat: "no-repeat"
         }}
       />
     </div>
