@@ -69,6 +69,7 @@ create table if not exists public.projects (
   name text not null,
   active boolean not null default true,
   budget_cents integer,
+  hourly_rate_cents integer,
   merged_into_project_id uuid references public.projects(id),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

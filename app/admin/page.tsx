@@ -38,6 +38,7 @@ export default function AdminPage() {
   const [newFeedUrl, setNewFeedUrl] = useState("");
   const [hourlyRateDollars, setHourlyRateDollars] = useState("");
   const [projectBudgetDrafts, setProjectBudgetDrafts] = useState<Record<string, string>>({});
+  const [projectRateDrafts, setProjectRateDrafts] = useState<Record<string, string>>({});
 
   const refresh = useCallback(async () => {
     if (!user || !supabase) return;
@@ -58,7 +59,7 @@ export default function AdminPage() {
           supabase.from("clients").select("id,name,kind").eq("active", true).order("name"),
           supabase
             .from("projects")
-            .select("id,name,client_id,budget_cents,clients(name)")
+            .select("id,name,client_id,budget_cents,hourly_rate_cents,clients(name)")
             .eq("active", true)
             .order("name"),
           supabase
@@ -80,6 +81,7 @@ export default function AdminPage() {
         name: project.name,
         clientId: project.client_id,
         budgetCents: project.budget_cents,
+        hourlyRateCents: project.hourly_rate_cents,
         clientName: Array.isArray(project.clients)
           ? project.clients[0]?.name ?? "Unknown"
           : ((project.clients as { name: string } | null)?.name ?? "Unknown")
@@ -96,6 +98,16 @@ export default function AdminPage() {
         mappedProjects.reduce<Record<string, string>>((acc, project) => {
           if (project.budgetCents && project.budgetCents > 0) {
             acc[project.id] = (project.budgetCents / 100).toFixed(0);
+          } else {
+            acc[project.id] = "";
+          }
+          return acc;
+        }, {})
+      );
+      setProjectRateDrafts(
+        mappedProjects.reduce<Record<string, string>>((acc, project) => {
+          if (project.hourlyRateCents && project.hourlyRateCents > 0) {
+            acc[project.id] = (project.hourlyRateCents / 100).toFixed(0);
           } else {
             acc[project.id] = "";
           }
@@ -271,13 +283,19 @@ export default function AdminPage() {
     }
   };
 
-  const saveProjectBudget = async (projectId: string) => {
+  const saveProjectFinancials = async (projectId: string) => {
     if (!supabase) return;
 
-    const value = projectBudgetDrafts[projectId] ?? "";
-    const dollars = value.trim() ? Number(value) : NaN;
-    if (value.trim() && (!Number.isFinite(dollars) || dollars < 0)) {
+    const budgetValue = projectBudgetDrafts[projectId] ?? "";
+    const budgetDollars = budgetValue.trim() ? Number(budgetValue) : NaN;
+    if (budgetValue.trim() && (!Number.isFinite(budgetDollars) || budgetDollars < 0)) {
       setError("Project budget must be a valid non-negative number.");
+      return;
+    }
+    const rateValue = projectRateDrafts[projectId] ?? "";
+    const rateDollars = rateValue.trim() ? Number(rateValue) : NaN;
+    if (rateValue.trim() && (!Number.isFinite(rateDollars) || rateDollars < 0)) {
+      setError("Project hourly rate must be a valid non-negative number.");
       return;
     }
 
@@ -287,13 +305,16 @@ export default function AdminPage() {
     try {
       const { error: updateError } = await supabase
         .from("projects")
-        .update({ budget_cents: value.trim() ? Math.round(dollars * 100) : null })
+        .update({
+          budget_cents: budgetValue.trim() ? Math.round(budgetDollars * 100) : null,
+          hourly_rate_cents: rateValue.trim() ? Math.round(rateDollars * 100) : null
+        })
         .eq("id", projectId);
 
       if (updateError) throw updateError;
       await refresh();
     } catch (err) {
-      setError(toErrorMessage(err, "Could not save project budget."));
+      setError(toErrorMessage(err, "Could not save project financials."));
     } finally {
       setSaving(false);
     }
@@ -477,7 +498,7 @@ export default function AdminPage() {
                     Archive
                   </button>
                 </div>
-                <div className="mt-2 flex items-center gap-2">
+                <div className="mt-2 flex flex-wrap items-center gap-2">
                   <input
                     type="number"
                     min="0"
@@ -492,14 +513,28 @@ export default function AdminPage() {
                     placeholder="Budget $"
                     className="w-32 rounded-xl border border-black/10 bg-white px-3 py-1.5 text-xs"
                   />
+                  <input
+                    type="number"
+                    min="0"
+                    step="25"
+                    value={projectRateDrafts[project.id] ?? ""}
+                    onChange={(event) =>
+                      setProjectRateDrafts((current) => ({
+                        ...current,
+                        [project.id]: event.target.value
+                      }))
+                    }
+                    placeholder="Rate $/hr (optional)"
+                    className="w-40 rounded-xl border border-black/10 bg-white px-3 py-1.5 text-xs"
+                  />
                   <button
                     className="rounded-full border border-black/10 px-3 py-1 text-xs"
                     onClick={() => {
-                      void saveProjectBudget(project.id);
+                      void saveProjectFinancials(project.id);
                     }}
                     disabled={saving}
                   >
-                    Save budget
+                    Save budget + rate
                   </button>
                 </div>
               </li>

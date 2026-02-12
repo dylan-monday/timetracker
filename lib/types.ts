@@ -61,6 +61,7 @@ export interface ProjectOption {
   clientId: string;
   clientName: string;
   budgetCents?: number | null;
+  hourlyRateCents?: number | null;
 }
 
 export interface DraftEntry {

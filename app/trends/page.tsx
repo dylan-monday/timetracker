@@ -49,6 +49,7 @@ export default function TrendsPage() {
       clientName: string;
       minutes: number;
       budgetCents: number;
+      hourlyRateCents: number | null;
     }>
   >([]);
   const [projectValueRows, setProjectValueRows] = useState<
@@ -57,6 +58,7 @@ export default function TrendsPage() {
       projectName: string;
       clientName: string;
       minutes: number;
+      hourlyRateCents: number | null;
     }>
   >([]);
 
@@ -83,7 +85,7 @@ export default function TrendsPage() {
 
         const { data, error: queryError } = await supabase
           .from("time_entries")
-          .select("rounded_minutes,project_id,projects(id,name,budget_cents,clients(name,kind))")
+          .select("rounded_minutes,project_id,projects(id,name,budget_cents,hourly_rate_cents,clients(name,kind))")
           .eq("status", "approved")
           .gte("entry_date", startDate);
 
@@ -92,17 +94,36 @@ export default function TrendsPage() {
         const next = { total: 0, client: 0, internal: 0, exercise: 0 };
         const perProject = new Map<
           string,
-          { projectId: string; projectName: string; clientName: string; minutes: number; budgetCents: number }
+          {
+            projectId: string;
+            projectName: string;
+            clientName: string;
+            minutes: number;
+            budgetCents: number;
+            hourlyRateCents: number | null;
+          }
         >();
         const perProjectValue = new Map<
           string,
-          { projectId: string; projectName: string; clientName: string; minutes: number }
+          {
+            projectId: string;
+            projectName: string;
+            clientName: string;
+            minutes: number;
+            hourlyRateCents: number | null;
+          }
         >();
 
         for (const row of data ?? []) {
           const minutes = row.rounded_minutes ?? 0;
           const project = row.projects as
-            | { id?: string; name?: string; budget_cents?: number | null; clients?: { name?: string; kind?: string } }
+            | {
+                id?: string;
+                name?: string;
+                budget_cents?: number | null;
+                hourly_rate_cents?: number | null;
+                clients?: { name?: string; kind?: string };
+              }
             | null;
           const clientKind = project?.clients?.kind;
           const clientName = (project?.clients?.name ?? "").toLowerCase();
@@ -125,7 +146,8 @@ export default function TrendsPage() {
               projectName: project.name ?? "Untitled project",
               clientName: project.clients?.name ?? "Client",
               minutes: 0,
-              budgetCents: project.budget_cents
+              budgetCents: project.budget_cents,
+              hourlyRateCents: project.hourly_rate_cents ?? null
             };
             current.minutes += minutes;
             perProject.set(project.id, current);
@@ -136,7 +158,8 @@ export default function TrendsPage() {
               projectId: project.id,
               projectName: project.name ?? "Untitled project",
               clientName: project.clients?.name ?? "Client",
-              minutes: 0
+              minutes: 0,
+              hourlyRateCents: project.hourly_rate_cents ?? null
             };
             current.minutes += minutes;
             perProjectValue.set(project.id, current);
@@ -186,15 +209,16 @@ export default function TrendsPage() {
   }, [totals]);
 
   const budgetRows = useMemo(() => {
-    if (!hourlyRateCents) return [];
-
     return projectBudgetRows.map((row) => {
-      const burnCents = Math.round((row.minutes / 60) * hourlyRateCents);
+      const effectiveRateCents =
+        row.hourlyRateCents && row.hourlyRateCents > 0 ? row.hourlyRateCents : hourlyRateCents;
+      const burnCents = Math.round((row.minutes / 60) * effectiveRateCents);
       const remainingCents = row.budgetCents - burnCents;
       const burnPct = row.budgetCents > 0 ? Math.min(100, Math.round((burnCents / row.budgetCents) * 100)) : 0;
 
       return {
         ...row,
+        effectiveRateCents,
         burnCents,
         remainingCents,
         burnPct
@@ -203,10 +227,11 @@ export default function TrendsPage() {
   }, [hourlyRateCents, projectBudgetRows]);
 
   const valueRows = useMemo(() => {
-    if (!hourlyRateCents) return [];
     return projectValueRows.map((row) => {
-      const valueCents = Math.round((row.minutes / 60) * hourlyRateCents);
-      return { ...row, valueCents };
+      const effectiveRateCents =
+        row.hourlyRateCents && row.hourlyRateCents > 0 ? row.hourlyRateCents : hourlyRateCents;
+      const valueCents = Math.round((row.minutes / 60) * effectiveRateCents);
+      return { ...row, effectiveRateCents, valueCents };
     });
   }, [hourlyRateCents, projectValueRows]);
 
@@ -263,6 +288,9 @@ export default function TrendsPage() {
                 <p className="text-xs text-muted">{row.clientName}</p>
                 <div className="mt-2 flex items-center justify-between text-xs text-muted">
                   <span>{(row.minutes / 60).toFixed(1)}h logged</span>
+                  <span>Rate {fmtMoney(row.effectiveRateCents)}/hr</span>
+                </div>
+                <div className="mt-1 flex justify-end text-xs text-muted">
                   <span>Value {fmtMoney(row.valueCents)}</span>
                 </div>
               </article>
@@ -288,6 +316,9 @@ export default function TrendsPage() {
                 <p className="text-xs text-muted">{row.clientName}</p>
                 <div className="mt-2 flex items-center justify-between text-xs text-muted">
                   <span>Budget {fmtMoney(row.budgetCents)}</span>
+                  <span>Rate {fmtMoney(row.effectiveRateCents)}/hr</span>
+                </div>
+                <div className="mt-1 flex justify-end text-xs text-muted">
                   <span>Burn {fmtMoney(row.burnCents)} ({row.burnPct}%)</span>
                 </div>
                 <div className="mt-2 h-2 overflow-hidden rounded-full bg-black/10">

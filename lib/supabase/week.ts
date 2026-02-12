@@ -31,7 +31,7 @@ export async function fetchClientsAndProjects(supabase: SupabaseClient): Promise
     supabase.from("clients").select("id,name,kind").eq("active", true).order("name", { ascending: true }),
     supabase
       .from("projects")
-      .select("id,name,client_id,budget_cents,clients(name)")
+      .select("id,name,client_id,budget_cents,hourly_rate_cents,clients(name)")
       .eq("active", true)
       .order("name", { ascending: true })
   ]);
@@ -46,6 +46,7 @@ export async function fetchClientsAndProjects(supabase: SupabaseClient): Promise
       name: project.name,
       clientId: project.client_id,
       budgetCents: project.budget_cents,
+      hourlyRateCents: project.hourly_rate_cents,
       clientName: Array.isArray(project.clients)
         ? project.clients[0]?.name ?? "Unknown"
         : ((project.clients as { name: string } | null)?.name ?? "Unknown")
