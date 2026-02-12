@@ -639,12 +639,9 @@ export function WeekGrid() {
             </div>
             <div className={`mt-2 font-numeric rounded-2xl px-3 py-2 text-[11px] leading-tight ${stateClass(mobileStatus)}`}>
               {mobileStatus === "ok" ? (
-                <span className="font-medium">On track</span>
+                <span className="font-medium">Full Day</span>
               ) : (
-                <>
-                  <span className="font-semibold">{Math.round(missingMinutes(mobileMinutes) / 60)}h open</span>
-                  <span className="ml-1 text-[10px] text-muted">window 8-5</span>
-                </>
+                <span className="font-semibold">{Math.round(missingMinutes(mobileMinutes) / 60)}h open</span>
               )}
             </div>
           </div>
@@ -723,8 +720,8 @@ export function WeekGrid() {
         <div className="hidden overflow-x-auto sm:block">
           <table className="w-full min-w-[760px] border-separate border-spacing-y-2 text-sm">
             <thead>
-              <tr className="text-left text-xs uppercase tracking-wide text-muted">
-                <th className="px-3 py-2">Line</th>
+              <tr className="text-left text-xs tracking-wide text-muted">
+                <th className="px-3 py-2 uppercase">Line</th>
                 {visibleDayIndexes.map((dayIndex) => {
                   const day = weekDays[dayIndex - 1];
                   const minutes = totalsByDay[dayIndex] ?? 0;
@@ -736,24 +733,21 @@ export function WeekGrid() {
                       key={day.isoDate}
                       className={`px-3 py-2 ${isWeekend ? "rounded-xl bg-black/[0.03]" : ""}`}
                     >
-                      <div className="mb-1 flex items-center justify-between">
-                        <span>
+                      <div className="mb-2">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-muted">
                           {day.label} {day.day}
-                        </span>
-                        <span className="font-numeric text-[11px] font-medium text-muted">
+                        </p>
+                        <p className="mt-0.5 font-numeric text-[13px] text-muted">
                           {minutesToDisplay(minutes)}
-                        </span>
+                        </p>
                       </div>
                       <div
                         className={`font-numeric rounded-2xl px-3 py-2 text-[11px] leading-tight ${stateClass(status)}`}
                       >
                         {status === "ok" ? (
-                          <span className="font-medium">On track</span>
+                          <span className="font-medium">Full Day</span>
                         ) : (
-                          <>
-                            <span className="font-semibold">{Math.round(missingMinutes(minutes) / 60)}h open</span>
-                            <span className="ml-1 text-[10px] text-muted">window 8-5</span>
-                          </>
+                          <span className="font-semibold">{Math.round(missingMinutes(minutes) / 60)}h open</span>
                         )}
                       </div>
                     </th>

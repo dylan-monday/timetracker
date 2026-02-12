@@ -337,6 +337,19 @@ export async function POST(request: Request) {
 
         if (calendarEventError) throw calendarEventError;
 
+        const { data: categorizedEntry, error: categorizedEntryError } = await supabase
+          .from("time_entries")
+          .select("id")
+          .eq("owner_id", userId)
+          .eq("calendar_event_id", calendarEvent.id)
+          .neq("status", "draft")
+          .limit(1)
+          .maybeSingle();
+        if (categorizedEntryError) throw categorizedEntryError;
+        if (categorizedEntry?.id) {
+          continue;
+        }
+
         const { error: insertError } = await supabase.from("time_entries").insert({
           owner_id: userId,
           project_id: guess.projectId,
