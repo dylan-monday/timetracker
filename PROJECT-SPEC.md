@@ -172,7 +172,7 @@ Notes:
 
 ## 8) Current Known Issues / Watchlist
 
-- Ambient background motion is currently under active debugging; user reports no visible movement despite recent motion-layer rewrites.
+- **Ambient background motion needs rethinking.** Multiple approaches tried (CSS animations, JS requestAnimationFrame, bouncing orbs, atmospheric drift with scale breathing). All versions are too subtle to perceive despite technically rendering and animating. The blur + gradient + light background combination may be fundamentally incompatible with visible motion. See `BACKGROUND-ANIMATION-SPEC.md` section 9 for full implementation log. Next session should explore alternative techniques (less blur, different approach, study reference implementations).
 - Calendar sync quality depends on clean feed sources and mapping workflow; noisy shared calendars can still require filtering decisions.
 
 ---

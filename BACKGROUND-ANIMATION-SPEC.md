@@ -110,6 +110,67 @@ Animation is successful when:
 
 1. Prove movement with obvious debug mode.
 2. Validate user can see movement reliably on target device/browser.
-3. Reduce intensity in controlled increments to “subtle but unmistakable.”
+3. Reduce intensity in controlled increments to "subtle but unmistakable."
 4. Keep a toggle/constant for debug intensity so regressions are easy to test later.
+
+---
+
+## 9) Implementation Log (2026-02-11)
+
+### What We Tried
+
+**Attempt 1: CSS animations on body + JS AmbientMotion component**
+- Problem: Two competing animation systems cancelled each other out visually
+- Body had `canvasDrift` keyframe animation, AmbientMotion had requestAnimationFrame
+- Layers used `mixBlendMode: "multiply"` which made them invisible on light backgrounds
+
+**Attempt 2: Removed body animation, fixed blend mode, increased opacity**
+- Removed multiply blend mode
+- Bumped opacity to 0.5-0.7
+- Result: Still not visible
+
+**Attempt 3: Solid color debug circles (no blur, no gradient)**
+- Used solid #22c55e, #3b82f6, #f59e0b
+- High opacity (0.6-0.8), no blur
+- Result: Finally visible! Confirmed rendering pipeline works
+
+**Attempt 4: Bouncing orbs with blur and pulsing opacity**
+- Added velocity-based bouncing off screen edges
+- Gaussian blur 50-60px
+- Subtle opacity pulsing
+- Result: Too subtle, user couldn't perceive movement
+
+**Attempt 5: Atmospheric drift with scale breathing**
+- Large gradient fields (65-80vw)
+- Compound sine waves for organic motion
+- Scale breathing (1.0-1.15)
+- Gentle rotation
+- Blur 35-45px
+- Result: Still too subtle
+
+### Core Problem Identified
+
+The blur + gradient + low contrast approach consistently fails to create perceivable motion. Even with:
+- Large movement amplitude (18-22vw)
+- Scale changes (15%)
+- Rotation
+- Higher opacity (0.4-0.5)
+
+The visual effect remains imperceptible or barely noticeable.
+
+### Questions to Resolve
+
+1. Is blur fundamentally incompatible with perceivable motion at this scale?
+2. Do we need sharper edges or more defined shapes to see movement?
+3. Should we try a completely different approach (CSS gradients, canvas, SVG)?
+4. Are the reference sites (Cursor, Raycast) using a different technique entirely?
+5. Does the light canvas background (#f5f6f3) wash out everything?
+
+### Next Steps to Consider
+
+- Study Cursor.com and Raycast implementations in browser devtools
+- Try reduced blur (10-20px) with more defined color regions
+- Consider darker/richer canvas background to increase contrast
+- Try animated SVG or canvas-based approach
+- Test on multiple devices - maybe it's visible on some screens but not others
 
