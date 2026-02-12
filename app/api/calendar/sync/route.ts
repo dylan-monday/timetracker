@@ -285,6 +285,7 @@ export async function POST(request: Request) {
 
     let imported = 0;
     let scannedEvents = 0;
+    let skippedUnmapped = 0;
     const sourceErrors: Array<{ source: string; error: string }> = [];
 
     for (const source of feedSources ?? []) {
@@ -364,6 +365,11 @@ export async function POST(request: Request) {
             continue;
           }
 
+          if (!guess.projectId) {
+            skippedUnmapped += 1;
+            continue;
+          }
+
           const { error: insertError } = await supabase.from("time_entries").insert({
             owner_id: userId,
             project_id: guess.projectId,
@@ -393,6 +399,7 @@ export async function POST(request: Request) {
       updated: 0,
       calendarsScanned: (feedSources ?? []).length,
       eventsScanned: scannedEvents,
+      skippedUnmapped,
       sourceErrors,
       range: {
         start: weekStartIso,
