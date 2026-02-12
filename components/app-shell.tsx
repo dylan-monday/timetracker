@@ -78,6 +78,7 @@ export function AppShell({ title, subtitle, children }: AppShellProps) {
 
         {children}
       </main>
+      <div className="ambient-overlay-layer pointer-events-none absolute inset-0 z-20" />
     </div>
   );
 }

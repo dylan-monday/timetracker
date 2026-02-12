@@ -62,6 +62,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             </p>
           ) : null}
         </section>
+        <div className="ambient-overlay-layer pointer-events-none absolute inset-0 z-20" />
       </main>
     );
   }

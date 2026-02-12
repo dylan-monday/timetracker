@@ -100,6 +100,32 @@ body {
   will-change: transform, opacity;
 }
 
+@keyframes ambientSweep {
+  0% {
+    background-position: -20% 30%, 120% 70%;
+    opacity: 0.08;
+  }
+  50% {
+    background-position: 60% 40%, 40% 60%;
+    opacity: 0.16;
+  }
+  100% {
+    background-position: 120% 30%, -20% 70%;
+    opacity: 0.1;
+  }
+}
+
+.ambient-overlay-layer {
+  background-image:
+    radial-gradient(40% 35% at 0% 50%, rgba(186, 214, 195, 0.24), transparent 70%),
+    radial-gradient(40% 35% at 100% 50%, rgba(186, 202, 220, 0.22), transparent 70%);
+  background-size: 170% 170%, 170% 170%;
+  background-repeat: no-repeat;
+  mix-blend-mode: multiply;
+  animation: ambientSweep 12s linear infinite;
+  will-change: background-position, opacity;
+}
+
 @keyframes ambientFloatA {
   0% {
     transform: translate3d(0, 0, 0) scale(1);
@@ -181,6 +207,10 @@ body {
 
   .ambient-film-layer {
     animation-duration: 42s;
+  }
+
+  .ambient-overlay-layer {
+    animation-duration: 24s;
   }
 
   .ambient-orb-a,
