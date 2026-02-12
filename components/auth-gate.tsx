@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import Image from "next/image";
+import { AmbientMotion } from "@/components/ambient-motion";
 import { useAuth } from "@/components/auth-provider";
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
@@ -30,6 +31,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         <div className="ambient-orb ambient-orb-a pointer-events-none absolute -left-24 top-8 h-72 w-72 rounded-full bg-[#b9d8c2]/32 blur-[84px]" />
         <div className="ambient-orb ambient-orb-b pointer-events-none absolute bottom-0 right-0 h-80 w-80 rounded-full bg-[#bfd4e5]/34 blur-[84px]" />
         <div className="ambient-orb ambient-orb-c pointer-events-none absolute left-1/2 top-1/3 h-56 w-56 -translate-x-1/2 rounded-full bg-[#d7ceb8]/24 blur-[84px]" />
+        <AmbientMotion />
 
         <section className="relative z-10 w-full max-w-xl rounded-[1.6rem] border border-black/10 bg-panel/95 p-8 shadow-[0_20px_80px_rgba(17,19,24,0.12)] backdrop-blur">
           <div className="mb-6 flex justify-center">
@@ -62,7 +64,6 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             </p>
           ) : null}
         </section>
-        <div className="ambient-overlay-layer pointer-events-none absolute inset-0 z-20" />
       </main>
     );
   }
