@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import Image from "next/image";
 import { AmbientMotion } from "@/components/ambient-motion";
+import { BUILD_TAG } from "@/lib/build-tag";
 import { useAuth } from "@/components/auth-provider";
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
@@ -64,6 +65,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             </p>
           ) : null}
         </section>
+        <div className="pointer-events-none fixed bottom-2 left-2 z-[60] rounded bg-black/70 px-2 py-1 font-mono text-[10px] text-white/90">
+          {BUILD_TAG}
+        </div>
       </main>
     );
   }
