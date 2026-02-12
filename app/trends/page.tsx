@@ -51,6 +51,14 @@ export default function TrendsPage() {
       budgetCents: number;
     }>
   >([]);
+  const [projectValueRows, setProjectValueRows] = useState<
+    Array<{
+      projectId: string;
+      projectName: string;
+      clientName: string;
+      minutes: number;
+    }>
+  >([]);
 
   useEffect(() => {
     let mounted = true;
@@ -86,6 +94,10 @@ export default function TrendsPage() {
           string,
           { projectId: string; projectName: string; clientName: string; minutes: number; budgetCents: number }
         >();
+        const perProjectValue = new Map<
+          string,
+          { projectId: string; projectName: string; clientName: string; minutes: number }
+        >();
 
         for (const row of data ?? []) {
           const minutes = row.rounded_minutes ?? 0;
@@ -118,12 +130,28 @@ export default function TrendsPage() {
             current.minutes += minutes;
             perProject.set(project.id, current);
           }
+
+          if (project?.id) {
+            const current = perProjectValue.get(project.id) ?? {
+              projectId: project.id,
+              projectName: project.name ?? "Untitled project",
+              clientName: project.clients?.name ?? "Client",
+              minutes: 0
+            };
+            current.minutes += minutes;
+            perProjectValue.set(project.id, current);
+          }
         }
 
         if (mounted) {
           setTotals(next);
           setProjectBudgetRows(
             Array.from(perProject.values()).sort((a, b) => b.minutes - a.minutes)
+          );
+          setProjectValueRows(
+            Array.from(perProjectValue.values())
+              .filter((row) => row.minutes > 0)
+              .sort((a, b) => b.minutes - a.minutes)
           );
         }
       } catch (err) {
@@ -174,6 +202,14 @@ export default function TrendsPage() {
     });
   }, [hourlyRateCents, projectBudgetRows]);
 
+  const valueRows = useMemo(() => {
+    if (!hourlyRateCents) return [];
+    return projectValueRows.map((row) => {
+      const valueCents = Math.round((row.minutes / 60) * hourlyRateCents);
+      return { ...row, valueCents };
+    });
+  }, [hourlyRateCents, projectValueRows]);
+
   const fmtMoney = (cents: number) =>
     new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(
       cents / 100
@@ -212,6 +248,31 @@ export default function TrendsPage() {
             </article>
           ))}
         </div>
+      </section>
+
+      <section className="rounded-2xl border border-black/5 bg-panel p-4 shadow-soft">
+        <h2 className="text-base font-semibold">Project value pulse</h2>
+        <p className="mt-1 text-sm text-muted">
+          A personal signal: hours by project and rough value at {hourlyRateCents ? fmtMoney(hourlyRateCents) : "$0"}/hr.
+        </p>
+        {valueRows.length ? (
+          <div className="mt-3 grid gap-3 lg:grid-cols-2">
+            {valueRows.map((row) => (
+              <article key={row.projectId} className="rounded-xl bg-white p-3">
+                <p className="text-sm font-medium text-ink">{row.projectName}</p>
+                <p className="text-xs text-muted">{row.clientName}</p>
+                <div className="mt-2 flex items-center justify-between text-xs text-muted">
+                  <span>{(row.minutes / 60).toFixed(1)}h logged</span>
+                  <span>Value {fmtMoney(row.valueCents)}</span>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-3 rounded-xl border border-dashed border-black/15 p-3 text-sm text-muted">
+            Add hourly rate in Admin Mode to unlock project value signal.
+          </div>
+        )}
       </section>
 
       <section className="rounded-2xl border border-black/5 bg-panel p-4 shadow-soft">
