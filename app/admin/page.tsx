@@ -582,7 +582,7 @@ export default function AdminPage() {
                     {project.name} <span className="text-muted">({clientNameById.get(project.clientId)})</span>
                   </span>
                   <button
-                    className="rounded-full border border-black/10 px-2 py-0.5 text-xs"
+                    className="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs text-red-700"
                     onClick={() => {
                       void archiveProject(project.id);
                     }}
@@ -621,7 +621,7 @@ export default function AdminPage() {
                     className="w-40 rounded-xl border border-black/10 bg-white px-3 py-1.5 text-xs"
                   />
                   <button
-                    className="rounded-full border border-black/10 px-3 py-1 text-xs"
+                    className="rounded-full bg-ink px-3 py-1 text-xs font-medium text-white disabled:opacity-50"
                     onClick={() => {
                       void saveProjectFinancials(project.id);
                     }}
