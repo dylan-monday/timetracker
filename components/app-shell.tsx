@@ -26,9 +26,9 @@ export function AppShell({ title, subtitle, children }: AppShellProps) {
   return (
     <div className="relative min-h-screen overflow-hidden bg-canvas text-ink">
       <div className="ambient-gradient-layer pointer-events-none absolute inset-0" />
-      <div className="ambient-orb ambient-orb-a pointer-events-none absolute -left-24 top-6 h-72 w-72 rounded-full bg-accent/20 blur-3xl" />
-      <div className="ambient-orb ambient-orb-b pointer-events-none absolute right-8 top-12 h-48 w-48 rounded-full bg-sky-200/30 blur-3xl" />
-      <div className="ambient-orb ambient-orb-c pointer-events-none absolute left-1/2 top-1/3 h-56 w-56 -translate-x-1/2 rounded-full bg-amber-100/20 blur-3xl" />
+      <div className="ambient-orb ambient-orb-a pointer-events-none absolute -left-24 top-6 h-72 w-72 rounded-full bg-[#b9d8c2]/30 blur-[84px]" />
+      <div className="ambient-orb ambient-orb-b pointer-events-none absolute right-8 top-12 h-48 w-48 rounded-full bg-[#bfd4e5]/30 blur-[84px]" />
+      <div className="ambient-orb ambient-orb-c pointer-events-none absolute left-1/2 top-1/3 h-56 w-56 -translate-x-1/2 rounded-full bg-[#d7ceb8]/24 blur-[84px]" />
 
       <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 pb-8 pt-6 sm:px-8 lg:px-12">
         <header className="flex items-center justify-between rounded-2xl border border-black/5 bg-gradient-to-r from-panel via-white/85 to-panel px-4 py-3 shadow-soft backdrop-blur">

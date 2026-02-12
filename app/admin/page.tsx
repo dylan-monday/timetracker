@@ -608,7 +608,7 @@ export default function AdminPage() {
                     {project.name} <span className="text-muted">({clientNameById.get(project.clientId)})</span>
                   </span>
                 </div>
-                <div className="mt-2 flex flex-nowrap items-center gap-2 overflow-x-auto whitespace-nowrap pb-1">
+                <div className="mt-2 grid gap-2 sm:flex sm:flex-nowrap sm:items-center sm:overflow-x-auto sm:whitespace-nowrap sm:pb-1">
                   <input
                     type="number"
                     min="0"
@@ -621,7 +621,7 @@ export default function AdminPage() {
                       }))
                     }
                     placeholder="Budget $"
-                    className="w-32 rounded-xl border border-black/10 bg-white px-3 py-1.5 text-xs"
+                    className="w-full rounded-xl border border-black/10 bg-white px-3 py-1.5 text-xs sm:w-32"
                   />
                   <input
                     type="number"
@@ -635,10 +635,10 @@ export default function AdminPage() {
                       }))
                     }
                     placeholder="Rate $/hr (optional)"
-                    className="w-40 rounded-xl border border-black/10 bg-white px-3 py-1.5 text-xs"
+                    className="w-full rounded-xl border border-black/10 bg-white px-3 py-1.5 text-xs sm:w-40"
                   />
                   <button
-                    className="rounded-full bg-ink px-3 py-1 text-xs font-medium text-white disabled:opacity-50"
+                    className="rounded-full bg-ink px-3 py-1 text-xs font-medium text-white disabled:opacity-50 sm:shrink-0"
                     onClick={() => {
                       void saveProjectFinancials(project.id);
                     }}
@@ -647,7 +647,7 @@ export default function AdminPage() {
                     Save budget + rate
                   </button>
                   <button
-                    className="inline-flex h-8 shrink-0 items-center justify-center rounded-full border border-red-200 bg-red-50 px-2.5 text-red-700 disabled:opacity-50"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-red-200 bg-red-50 text-red-700 disabled:opacity-50 sm:h-8 sm:w-8"
                     onClick={() => {
                       void archiveProject(project.id);
                     }}

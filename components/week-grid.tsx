@@ -68,6 +68,14 @@ function isWeekendIsoDate(isoDate: string): boolean {
   return day === 0 || day === 6;
 }
 
+function mobileDayLabel(dayIndex: number, todayIndex: number, fallback: string): string {
+  const diff = dayIndex - todayIndex;
+  if (diff === 0) return "Today";
+  if (diff === -1) return "Yesterday";
+  if (diff === 1) return "Tomorrow";
+  return fallback;
+}
+
 function formatDraftTimeRange(entry: DraftEntry): string | null {
   if (!entry.startsAt || !entry.endsAt) return null;
 
@@ -119,6 +127,7 @@ export function WeekGrid() {
     return day === 0 ? 7 : day;
   }, []);
   const [mobileDayIndex, setMobileDayIndex] = useState(todayDayIndex);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const reflectionQuote = useMemo(
     () => REFLECTION_QUOTES[Math.floor(Math.random() * REFLECTION_QUOTES.length)],
     []
@@ -226,6 +235,7 @@ export function WeekGrid() {
   const mobileDay = weekDays[activeMobileDayIndex - 1];
   const mobileMinutes = totalsByDay[activeMobileDayIndex] ?? 0;
   const mobileStatus = missingState(mobileMinutes);
+  const mobilePrimaryLabel = mobileDayLabel(activeMobileDayIndex, todayDayIndex, mobileDay?.label ?? "");
 
   const shiftMobileDay = (direction: -1 | 1) => {
     const currentPosition = visibleDayIndexes.indexOf(activeMobileDayIndex);
@@ -236,6 +246,25 @@ export function WeekGrid() {
     const nextPosition =
       (currentPosition + direction + visibleDayIndexes.length) % visibleDayIndexes.length;
     setMobileDayIndex(visibleDayIndexes[nextPosition]);
+  };
+
+  const handleMobileSwipeStart = (x: number) => {
+    setTouchStartX(x);
+  };
+
+  const handleMobileSwipeEnd = (x: number) => {
+    if (touchStartX === null) return;
+    const delta = x - touchStartX;
+    if (Math.abs(delta) < 38) {
+      setTouchStartX(null);
+      return;
+    }
+    if (delta < 0) {
+      shiftMobileDay(1);
+    } else {
+      shiftMobileDay(-1);
+    }
+    setTouchStartX(null);
   };
 
   const handleCellSubmit = async () => {
@@ -624,7 +653,11 @@ export function WeekGrid() {
         {syncMessage ? <p className="mb-3 text-xs text-muted">{syncMessage}</p> : null}
 
         <div className="sm:hidden">
-          <div className="mb-3 rounded-xl border border-black/10 bg-white p-3">
+          <div
+            className="mb-3 rounded-xl border border-black/10 bg-white p-3"
+            onTouchStart={(event) => handleMobileSwipeStart(event.changedTouches[0]?.clientX ?? 0)}
+            onTouchEnd={(event) => handleMobileSwipeEnd(event.changedTouches[0]?.clientX ?? 0)}
+          >
             <div className="flex items-center justify-between">
               <button
                 type="button"
@@ -641,7 +674,7 @@ export function WeekGrid() {
                   setMobileDayIndex(visibleDayIndexes.includes(todayDayIndex) ? todayDayIndex : visibleDayIndexes[0]);
                 }}
               >
-                Today
+                {mobilePrimaryLabel}
               </button>
               <button
                 type="button"
