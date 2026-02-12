@@ -34,14 +34,16 @@ export function AppShell({ title, subtitle, children }: AppShellProps) {
       <main className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 pb-8 pt-6 sm:px-8 lg:px-12">
         <header className="flex items-center justify-between rounded-2xl border border-black/5 bg-gradient-to-r from-panel via-white/85 to-panel px-4 py-3 shadow-soft backdrop-blur">
           <div className="flex items-center gap-3">
-            <Image
-              src="/m26-black-simple.svg"
-              alt="M+P Time"
-              width={152}
-              height={31}
-              className="h-7 w-auto sm:h-8"
-              priority
-            />
+            <Link href="/week" aria-label="Go to week view">
+              <Image
+                src="/m26-black-simple.svg"
+                alt="M+P Time"
+                width={152}
+                height={31}
+                className="h-7 w-auto sm:h-8"
+                priority
+              />
+            </Link>
           </div>
           <nav className="flex items-center gap-1 rounded-xl border border-black/5 bg-white/60 p-1">
             {navItems.map((item) => {

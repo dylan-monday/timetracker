@@ -20,6 +20,18 @@ function isMissingColumnError(error: { code?: string; message?: string } | null)
   return error.code === "42703" || (error.message ?? "").toLowerCase().includes("does not exist");
 }
 
+function parseMoneyString(value: string): number {
+  const normalized = value.replace(/[$,\s]/g, "").trim();
+  if (!normalized) return NaN;
+  return Number(normalized);
+}
+
+function formatMoneyInput(value: string): string {
+  const numeric = parseMoneyString(value);
+  if (!Number.isFinite(numeric)) return value.trim();
+  return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(numeric);
+}
+
 export default function AdminPage() {
   const { supabase, user } = useAuth();
 
@@ -119,13 +131,15 @@ export default function AdminPage() {
       setProjects(mappedProjects);
       setHourlyRateDollars(
         profile?.hourly_rate_cents && profile.hourly_rate_cents > 0
-          ? (profile.hourly_rate_cents / 100).toFixed(0)
+          ? new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(profile.hourly_rate_cents / 100)
           : ""
       );
       setClientRateDrafts(
         mappedClients.reduce<Record<string, string>>((acc, client) => {
           if (client.hourlyRateCents && client.hourlyRateCents > 0) {
-            acc[client.id] = (client.hourlyRateCents / 100).toFixed(0);
+            acc[client.id] = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(
+              client.hourlyRateCents / 100
+            );
           } else {
             acc[client.id] = "";
           }
@@ -135,7 +149,9 @@ export default function AdminPage() {
       setProjectBudgetDrafts(
         mappedProjects.reduce<Record<string, string>>((acc, project) => {
           if (project.budgetCents && project.budgetCents > 0) {
-            acc[project.id] = (project.budgetCents / 100).toFixed(0);
+            acc[project.id] = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(
+              project.budgetCents / 100
+            );
           } else {
             acc[project.id] = "";
           }
@@ -151,7 +167,9 @@ export default function AdminPage() {
       setProjectRateDrafts(
         mappedProjects.reduce<Record<string, string>>((acc, project) => {
           if (project.hourlyRateCents && project.hourlyRateCents > 0) {
-            acc[project.id] = (project.hourlyRateCents / 100).toFixed(0);
+            acc[project.id] = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(
+              project.hourlyRateCents / 100
+            );
           } else {
             acc[project.id] = "";
           }
@@ -308,7 +326,7 @@ export default function AdminPage() {
   const saveHourlyRate = async () => {
     if (!user || !supabase) return;
 
-    const dollars = Number(hourlyRateDollars);
+    const dollars = parseMoneyString(hourlyRateDollars);
     if (!Number.isFinite(dollars) || dollars < 0) {
       setError("Hourly rate must be a valid non-negative number.");
       return;
@@ -337,7 +355,7 @@ export default function AdminPage() {
     if (!supabase) return;
 
     const value = clientRateDrafts[clientId] ?? "";
-    const dollars = value.trim() ? Number(value) : NaN;
+    const dollars = value.trim() ? parseMoneyString(value) : NaN;
     if (value.trim() && (!Number.isFinite(dollars) || dollars < 0)) {
       setError("Client hourly rate must be a valid non-negative number.");
       return;
@@ -373,13 +391,13 @@ export default function AdminPage() {
     if (!supabase) return;
 
     const budgetValue = projectBudgetDrafts[projectId] ?? "";
-    const budgetDollars = budgetValue.trim() ? Number(budgetValue) : NaN;
+    const budgetDollars = budgetValue.trim() ? parseMoneyString(budgetValue) : NaN;
     if (budgetValue.trim() && (!Number.isFinite(budgetDollars) || budgetDollars < 0)) {
       setError("Project budget must be a valid non-negative number.");
       return;
     }
     const rateValue = projectRateDrafts[projectId] ?? "";
-    const rateDollars = rateValue.trim() ? Number(rateValue) : NaN;
+    const rateDollars = rateValue.trim() ? parseMoneyString(rateValue) : NaN;
     if (rateValue.trim() && (!Number.isFinite(rateDollars) || rateDollars < 0)) {
       setError("Project hourly rate must be a valid non-negative number.");
       return;
@@ -559,20 +577,21 @@ export default function AdminPage() {
                 <div className="flex items-center justify-between gap-2">
                   <span>{client.name}</span>
                   <button
-                    className="rounded-full border border-black/10 px-2 py-0.5 text-xs"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-red-200 bg-red-50 text-red-700 disabled:opacity-50"
                     onClick={() => {
                       void archiveClient(client.id);
                     }}
                     disabled={saving}
+                    aria-label={`Archive ${client.name}`}
+                    title="Archive client"
                   >
-                    Archive
+                    <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
                 <div className="mt-2 flex items-center gap-2">
                   <input
-                    type="number"
-                    min="0"
-                    step="25"
+                    type="text"
+                    inputMode="decimal"
                     value={clientRateDrafts[client.id] ?? ""}
                     onChange={(event) =>
                       setClientRateDrafts((current) => ({
@@ -580,8 +599,14 @@ export default function AdminPage() {
                         [client.id]: event.target.value
                       }))
                     }
+                    onBlur={(event) =>
+                      setClientRateDrafts((current) => ({
+                        ...current,
+                        [client.id]: formatMoneyInput(event.target.value)
+                      }))
+                    }
                     placeholder="Client rate $/hr (optional)"
-                    className="w-44 rounded-xl border border-black/10 bg-white px-3 py-1.5 text-xs"
+                    className="font-numeric w-44 rounded-xl border border-black/10 bg-white px-3 py-1.5 text-xs"
                   />
                   <button
                     className="rounded-full border border-black/10 px-3 py-1 text-xs"
@@ -659,11 +684,10 @@ export default function AdminPage() {
                   </button>
                   <span className="w-full text-xs text-muted sm:w-auto">({clientNameById.get(project.clientId)})</span>
                 </div>
-                <div className="mt-2 grid gap-2 sm:flex sm:flex-nowrap sm:items-center sm:overflow-x-auto sm:whitespace-nowrap sm:pb-1">
+                <div className="mt-2 grid gap-2">
                   <input
-                    type="number"
-                    min="0"
-                    step="50"
+                    type="text"
+                    inputMode="decimal"
                     value={projectBudgetDrafts[project.id] ?? ""}
                     onChange={(event) =>
                       setProjectBudgetDrafts((current) => ({
@@ -671,13 +695,18 @@ export default function AdminPage() {
                         [project.id]: event.target.value
                       }))
                     }
+                    onBlur={(event) =>
+                      setProjectBudgetDrafts((current) => ({
+                        ...current,
+                        [project.id]: formatMoneyInput(event.target.value)
+                      }))
+                    }
                     placeholder="Budget $"
-                    className="w-full rounded-xl border border-black/10 bg-white px-3 py-1.5 text-xs sm:w-32"
+                    className="font-numeric w-full rounded-xl border border-black/10 bg-white px-3 py-1.5 text-xs"
                   />
                   <input
-                    type="number"
-                    min="0"
-                    step="25"
+                    type="text"
+                    inputMode="decimal"
                     value={projectRateDrafts[project.id] ?? ""}
                     onChange={(event) =>
                       setProjectRateDrafts((current) => ({
@@ -685,11 +714,18 @@ export default function AdminPage() {
                         [project.id]: event.target.value
                       }))
                     }
+                    onBlur={(event) =>
+                      setProjectRateDrafts((current) => ({
+                        ...current,
+                        [project.id]: formatMoneyInput(event.target.value)
+                      }))
+                    }
                     placeholder="Rate $/hr (optional)"
-                    className="w-full rounded-xl border border-black/10 bg-white px-3 py-1.5 text-xs sm:w-40"
+                    className="font-numeric w-full rounded-xl border border-black/10 bg-white px-3 py-1.5 text-xs"
                   />
+                  <div className="flex items-center gap-2">
                   <button
-                    className="rounded-full bg-ink px-3 py-1 text-xs font-medium text-white disabled:opacity-50 sm:shrink-0"
+                    className="h-9 rounded-full bg-ink px-4 text-xs font-medium text-white disabled:opacity-50"
                     onClick={() => {
                       void saveProjectFinancials(project.id);
                     }}
@@ -698,7 +734,7 @@ export default function AdminPage() {
                     Save budget + rate
                   </button>
                   <button
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-red-200 bg-red-50 text-red-700 disabled:opacity-50 sm:h-8 sm:w-8"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-red-200 bg-red-50 text-red-700 disabled:opacity-50"
                     onClick={() => {
                       void archiveProject(project.id);
                     }}
@@ -708,6 +744,7 @@ export default function AdminPage() {
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
+                  </div>
                 </div>
               </li>
             ))}
@@ -722,13 +759,13 @@ export default function AdminPage() {
         <div className="mt-3 flex items-center gap-2">
           <label className="text-sm text-muted">Hourly rate ($/hr)</label>
           <input
-            type="number"
-            min="0"
-            step="25"
+            type="text"
+            inputMode="decimal"
             value={hourlyRateDollars}
             onChange={(event) => setHourlyRateDollars(event.target.value)}
+            onBlur={(event) => setHourlyRateDollars(formatMoneyInput(event.target.value))}
             placeholder="300"
-            className="w-28 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
+            className="font-numeric w-28 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
           />
           <button
             className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-white disabled:opacity-50"

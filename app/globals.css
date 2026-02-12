@@ -23,7 +23,22 @@ body {
     radial-gradient(circle at 85% 0%, rgba(143, 205, 255, 0.19), transparent 32%),
     radial-gradient(circle at 50% 100%, rgba(244, 199, 96, 0.09), transparent 40%),
     #f5f6f3;
+  background-size: 150% 150%, 150% 150%, 150% 150%, auto;
+  background-repeat: no-repeat;
+  animation: canvasDrift 26s ease-in-out infinite alternate;
   color: #111318;
+}
+
+@keyframes canvasDrift {
+  0% {
+    background-position: 10% 10%, 90% 6%, 50% 92%, 0% 0%;
+  }
+  50% {
+    background-position: 22% 18%, 78% 20%, 48% 78%, 0% 0%;
+  }
+  100% {
+    background-position: 6% 14%, 94% 8%, 54% 96%, 0% 0%;
+  }
 }
 
 @keyframes ambientGradientDrift {
@@ -152,6 +167,10 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  body {
+    animation-duration: 52s;
+  }
+
   .ambient-gradient-layer {
     animation-duration: 36s;
   }
