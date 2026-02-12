@@ -23,11 +23,16 @@ function dayIndexFromISO(isoDate: string): number {
   return isoDay === 0 ? 7 : isoDay;
 }
 
+function isMissingColumnError(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false;
+  return error.code === "42703" || (error.message ?? "").toLowerCase().includes("column");
+}
+
 export async function fetchClientsAndProjects(supabase: SupabaseClient): Promise<{
   clients: ClientOption[];
   projects: ProjectOption[];
 }> {
-  const [{ data: clients, error: clientError }, { data: projects, error: projectError }] = await Promise.all([
+  let [{ data: clients, error: clientError }, { data: projects, error: projectError }] = await Promise.all([
     supabase
       .from("clients")
       .select("id,name,kind,hourly_rate_cents")
@@ -40,6 +45,26 @@ export async function fetchClientsAndProjects(supabase: SupabaseClient): Promise
       .order("name", { ascending: true })
   ]);
 
+  if (isMissingColumnError(clientError)) {
+    const fallback = await supabase
+      .from("clients")
+      .select("id,name,kind")
+      .eq("active", true)
+      .order("name", { ascending: true });
+    clients = fallback.data as typeof clients;
+    clientError = fallback.error;
+  }
+
+  if (isMissingColumnError(projectError)) {
+    const fallback = await supabase
+      .from("projects")
+      .select("id,name,client_id,budget_cents,clients(name)")
+      .eq("active", true)
+      .order("name", { ascending: true });
+    projects = fallback.data as typeof projects;
+    projectError = fallback.error;
+  }
+
   if (clientError) throw clientError;
   if (projectError) throw projectError;
 
@@ -48,14 +73,14 @@ export async function fetchClientsAndProjects(supabase: SupabaseClient): Promise
       id: client.id,
       name: client.name,
       kind: client.kind,
-      hourlyRateCents: client.hourly_rate_cents
+      hourlyRateCents: "hourly_rate_cents" in client ? client.hourly_rate_cents ?? null : null
     })),
     projects: (projects ?? []).map((project) => ({
       id: project.id,
       name: project.name,
       clientId: project.client_id,
       budgetCents: project.budget_cents,
-      hourlyRateCents: project.hourly_rate_cents,
+      hourlyRateCents: "hourly_rate_cents" in project ? project.hourly_rate_cents ?? null : null,
       clientName: Array.isArray(project.clients)
         ? project.clients[0]?.name ?? "Unknown"
         : ((project.clients as { name: string } | null)?.name ?? "Unknown")
