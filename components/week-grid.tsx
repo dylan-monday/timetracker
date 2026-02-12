@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, RefreshCw, Sparkles, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, RefreshCw, Sparkles, Trash2 } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 import { makeWeekDays } from "@/lib/mock-data";
 import { missingMinutes, missingState } from "@/lib/missing-time";
@@ -60,7 +60,7 @@ const REFLECTION_QUOTES = [
 function stateClass(state: "ok" | "attention" | "gap"): string {
   if (state === "ok") return "bg-accent/40 text-ink";
   if (state === "attention") return "bg-warning/40 text-ink";
-  return "bg-danger/35 text-ink";
+  return "bg-sky-200/70 text-ink";
 }
 
 function isWeekendIsoDate(isoDate: string): boolean {
@@ -114,12 +114,20 @@ export function WeekGrid() {
   const [draftActionId, setDraftActionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pinnedProjectIds, setPinnedProjectIds] = useState<string[]>([]);
+  const todayDayIndex = useMemo(() => {
+    const day = new Date().getDay();
+    return day === 0 ? 7 : day;
+  }, []);
+  const [mobileDayIndex, setMobileDayIndex] = useState(todayDayIndex);
   const reflectionQuote = useMemo(
     () => REFLECTION_QUOTES[Math.floor(Math.random() * REFLECTION_QUOTES.length)],
     []
   );
 
   const visibleDayIndexes = showWeekends ? ALL_DAY_INDEXES : BUSINESS_DAY_INDEXES;
+  const activeMobileDayIndex = visibleDayIndexes.includes(mobileDayIndex)
+    ? mobileDayIndex
+    : visibleDayIndexes[0];
   const weekKey = weekDays[0]?.isoDate ?? "week";
 
   const savePinnedProjectIds = useCallback(
@@ -154,6 +162,12 @@ export function WeekGrid() {
       setPinnedProjectIds([]);
     }
   }, [weekKey]);
+
+  useEffect(() => {
+    if (!visibleDayIndexes.includes(mobileDayIndex)) {
+      setMobileDayIndex(visibleDayIndexes.includes(todayDayIndex) ? todayDayIndex : visibleDayIndexes[0]);
+    }
+  }, [mobileDayIndex, todayDayIndex, visibleDayIndexes]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -209,6 +223,20 @@ export function WeekGrid() {
     acc[dayIndex] = lines.reduce((sum, line) => sum + (line.cells[String(dayIndex)] ?? 0), 0);
     return acc;
   }, {});
+  const mobileDay = weekDays[activeMobileDayIndex - 1];
+  const mobileMinutes = totalsByDay[activeMobileDayIndex] ?? 0;
+  const mobileStatus = missingState(mobileMinutes);
+
+  const shiftMobileDay = (direction: -1 | 1) => {
+    const currentPosition = visibleDayIndexes.indexOf(activeMobileDayIndex);
+    if (currentPosition < 0) {
+      setMobileDayIndex(visibleDayIndexes[0]);
+      return;
+    }
+    const nextPosition =
+      (currentPosition + direction + visibleDayIndexes.length) % visibleDayIndexes.length;
+    setMobileDayIndex(visibleDayIndexes[nextPosition]);
+  };
 
   const handleCellSubmit = async () => {
     if (!activeCell || !user || !supabase) return;
@@ -573,7 +601,119 @@ export function WeekGrid() {
         {error ? <p className="mb-3 text-xs text-danger">{error}</p> : null}
         {syncMessage ? <p className="mb-3 text-xs text-muted">{syncMessage}</p> : null}
 
-        <div className="overflow-x-auto">
+        <div className="sm:hidden">
+          <div className="mb-3 rounded-xl border border-black/10 bg-white p-3">
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                className="rounded-full border border-black/10 bg-white p-2"
+                onClick={() => shiftMobileDay(-1)}
+                aria-label="Previous day"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-medium"
+                onClick={() => {
+                  setMobileDayIndex(visibleDayIndexes.includes(todayDayIndex) ? todayDayIndex : visibleDayIndexes[0]);
+                }}
+              >
+                Today
+              </button>
+              <button
+                type="button"
+                className="rounded-full border border-black/10 bg-white p-2"
+                onClick={() => shiftMobileDay(1)}
+                aria-label="Next day"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mt-2 flex items-center justify-between">
+              <p className="text-sm font-medium">
+                {mobileDay?.label} {mobileDay?.day}
+              </p>
+              <p className="font-numeric text-xs text-muted">{minutesToDisplay(mobileMinutes)}</p>
+            </div>
+            <div className={`mt-2 font-numeric rounded-full px-2 py-1 text-[11px] font-medium ${stateClass(mobileStatus)}`}>
+              {mobileStatus === "ok" ? "On track" : `${Math.round(missingMinutes(mobileMinutes) / 60)}h open (8-5)`}
+            </div>
+          </div>
+
+          <table className="w-full border-separate border-spacing-y-2 text-sm">
+            <tbody>
+              {lines.map((line) => {
+                const isActive =
+                  activeCell?.lineId === line.id && activeCell?.dayIndex === activeMobileDayIndex;
+                const value = line.cells[String(activeMobileDayIndex)] ?? 0;
+                return (
+                  <tr key={`mobile-${line.id}`} className="rounded-xl bg-white/90 shadow-[0_1px_0_rgba(0,0,0,0.05)]">
+                    <td className="rounded-l-xl px-3 py-3 align-middle">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-medium text-ink">{line.projectName}</p>
+                        <button
+                          type="button"
+                          className="rounded-full border border-black/10 bg-white p-1.5 text-muted transition hover:border-black/20 hover:text-ink"
+                          onClick={() => {
+                            void handleDeleteLine(line);
+                          }}
+                          title="Delete this line from week"
+                          disabled={saving}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      <p className="text-xs text-muted">
+                        {line.clientName}
+                        {line.isDraft ? " • draft approval" : ""}
+                      </p>
+                    </td>
+                    <td className="px-3 py-2">
+                      {isActive ? (
+                        <input
+                          autoFocus
+                          value={entryInput}
+                          onChange={(event) => setEntryInput(event.target.value)}
+                          onBlur={() => {
+                            void handleCellSubmit();
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              void handleCellSubmit();
+                            }
+                          }}
+                          className="w-full rounded-lg border border-black/15 bg-canvas px-2 py-1.5 text-sm focus:border-black/30 focus:outline-none"
+                          placeholder="1h 30m"
+                        />
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveCell({ lineId: line.id, dayIndex: activeMobileDayIndex });
+                            setEntryInput(value ? String(value / 60) : "");
+                          }}
+                          className="w-full rounded-lg border border-transparent px-2 py-1.5 text-left text-sm transition hover:border-black/10 hover:bg-canvas"
+                        >
+                          <span className="font-numeric">{minutesToDisplay(value)}</span>
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          {!lines.length && !loading ? (
+            <div className="rounded-xl border border-dashed border-black/15 p-6 text-center text-sm text-muted">
+              No lines yet. Add your first client/project line to start tracking.
+            </div>
+          ) : null}
+        </div>
+
+        <div className="hidden overflow-x-auto sm:block">
           <table className="w-full min-w-[760px] border-separate border-spacing-y-2 text-sm">
             <thead>
               <tr className="text-left text-xs uppercase tracking-wide text-muted">
