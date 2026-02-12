@@ -35,6 +35,11 @@ function startForRange(range: RangeKey): string {
   return new Date(now.getFullYear(), 0, 1).toISOString().slice(0, 10);
 }
 
+function isMissingColumnError(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false;
+  return error.code === "42703" || (error.message ?? "").toLowerCase().includes("does not exist");
+}
+
 export default function TrendsPage() {
   const { supabase } = useAuth();
   const [range, setRange] = useState<RangeKey>("week");
@@ -85,13 +90,23 @@ export default function TrendsPage() {
         if (profileError && profileError.code !== "PGRST116") throw profileError;
         setHourlyRateCents(profile?.hourly_rate_cents ?? 0);
 
-        const { data, error: queryError } = await supabase
+        let { data, error: queryError } = await supabase
           .from("time_entries")
           .select(
             "rounded_minutes,project_id,projects(id,name,budget_cents,hourly_rate_cents,clients(name,kind,hourly_rate_cents))"
           )
           .eq("status", "approved")
           .gte("entry_date", startDate);
+
+        if (isMissingColumnError(queryError)) {
+          const fallback = await supabase
+            .from("time_entries")
+            .select("rounded_minutes,project_id,projects(id,name,budget_cents,hourly_rate_cents,clients(name,kind))")
+            .eq("status", "approved")
+            .gte("entry_date", startDate);
+          data = fallback.data;
+          queryError = fallback.error;
+        }
 
         if (queryError) throw queryError;
 

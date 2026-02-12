@@ -14,6 +14,11 @@ function toErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
+function isMissingColumnError(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false;
+  return error.code === "42703" || (error.message ?? "").toLowerCase().includes("does not exist");
+}
+
 export default function AdminPage() {
   const { supabase, user } = useAuth();
 
@@ -54,7 +59,7 @@ export default function AdminPage() {
     try {
       const [
         { data: profile, error: profileError },
-        { data: dbClients, error: clientsError },
+        clientsResult,
         { data: dbProjects, error: projectsError },
         { data: dbFeedSources, error: feedSourcesError }
       ] = await Promise.all([
@@ -72,9 +77,22 @@ export default function AdminPage() {
         ]);
 
       if (profileError && profileError.code !== "PGRST116") throw profileError;
-      if (clientsError) throw clientsError;
       if (projectsError) throw projectsError;
       if (feedSourcesError) throw feedSourcesError;
+
+      let dbClients: Array<{ id: string; name: string; kind: string; hourly_rate_cents?: number | null }> | null =
+        (clientsResult.data as Array<{ id: string; name: string; kind: string; hourly_rate_cents?: number | null }> | null);
+      let clientsError = clientsResult.error;
+      if (isMissingColumnError(clientsError)) {
+        const fallbackClients = await supabase
+          .from("clients")
+          .select("id,name,kind")
+          .eq("active", true)
+          .order("name");
+        dbClients = fallbackClients.data as Array<{ id: string; name: string; kind: string }> | null;
+        clientsError = fallbackClients.error;
+      }
+      if (clientsError) throw clientsError;
 
       setIsAdmin(profile?.role === "admin" || isEmailAdmin);
 
@@ -82,7 +100,7 @@ export default function AdminPage() {
         id: client.id,
         name: client.name,
         kind: client.kind,
-        hourlyRateCents: client.hourly_rate_cents
+        hourlyRateCents: "hourly_rate_cents" in client ? client.hourly_rate_cents ?? null : null
       })) as ClientOption[];
       const mappedProjects = (dbProjects ?? []).map((project) => ({
         id: project.id,
@@ -326,7 +344,14 @@ export default function AdminPage() {
         .from("clients")
         .update({ hourly_rate_cents: value.trim() ? Math.round(dollars * 100) : null })
         .eq("id", clientId);
-      if (updateError) throw updateError;
+      if (updateError) {
+        if (updateError.code === "42703" && updateError.message.includes("hourly_rate_cents")) {
+          throw new Error(
+            "Client hourly rate column is missing in Supabase. Run: alter table public.clients add column if not exists hourly_rate_cents integer;"
+          );
+        }
+        throw updateError;
+      }
       await refresh();
       setSuccess("Saved client hourly rate.");
     } catch (err) {
