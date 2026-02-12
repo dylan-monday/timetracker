@@ -57,6 +57,7 @@ create table if not exists public.clients (
   owner_id uuid not null references public.profiles(id) on delete cascade,
   name text not null,
   kind public.client_kind not null default 'external',
+  hourly_rate_cents integer,
   active boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

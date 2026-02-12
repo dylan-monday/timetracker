@@ -53,6 +53,7 @@ export interface ClientOption {
   id: string;
   name: string;
   kind: ClientKind;
+  hourlyRateCents?: number | null;
 }
 
 export interface ProjectOption {

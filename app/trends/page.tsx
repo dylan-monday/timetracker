@@ -50,6 +50,7 @@ export default function TrendsPage() {
       minutes: number;
       budgetCents: number;
       hourlyRateCents: number | null;
+      clientHourlyRateCents: number | null;
     }>
   >([]);
   const [projectValueRows, setProjectValueRows] = useState<
@@ -59,6 +60,7 @@ export default function TrendsPage() {
       clientName: string;
       minutes: number;
       hourlyRateCents: number | null;
+      clientHourlyRateCents: number | null;
     }>
   >([]);
 
@@ -85,7 +87,9 @@ export default function TrendsPage() {
 
         const { data, error: queryError } = await supabase
           .from("time_entries")
-          .select("rounded_minutes,project_id,projects(id,name,budget_cents,hourly_rate_cents,clients(name,kind))")
+          .select(
+            "rounded_minutes,project_id,projects(id,name,budget_cents,hourly_rate_cents,clients(name,kind,hourly_rate_cents))"
+          )
           .eq("status", "approved")
           .gte("entry_date", startDate);
 
@@ -101,6 +105,7 @@ export default function TrendsPage() {
             minutes: number;
             budgetCents: number;
             hourlyRateCents: number | null;
+            clientHourlyRateCents: number | null;
           }
         >();
         const perProjectValue = new Map<
@@ -111,6 +116,7 @@ export default function TrendsPage() {
             clientName: string;
             minutes: number;
             hourlyRateCents: number | null;
+            clientHourlyRateCents: number | null;
           }
         >();
 
@@ -122,7 +128,7 @@ export default function TrendsPage() {
                 name?: string;
                 budget_cents?: number | null;
                 hourly_rate_cents?: number | null;
-                clients?: { name?: string; kind?: string };
+                clients?: { name?: string; kind?: string; hourly_rate_cents?: number | null };
               }
             | null;
           const clientKind = project?.clients?.kind;
@@ -147,7 +153,8 @@ export default function TrendsPage() {
               clientName: project.clients?.name ?? "Client",
               minutes: 0,
               budgetCents: project.budget_cents,
-              hourlyRateCents: project.hourly_rate_cents ?? null
+              hourlyRateCents: project.hourly_rate_cents ?? null,
+              clientHourlyRateCents: project.clients?.hourly_rate_cents ?? null
             };
             current.minutes += minutes;
             perProject.set(project.id, current);
@@ -159,7 +166,8 @@ export default function TrendsPage() {
               projectName: project.name ?? "Untitled project",
               clientName: project.clients?.name ?? "Client",
               minutes: 0,
-              hourlyRateCents: project.hourly_rate_cents ?? null
+              hourlyRateCents: project.hourly_rate_cents ?? null,
+              clientHourlyRateCents: project.clients?.hourly_rate_cents ?? null
             };
             current.minutes += minutes;
             perProjectValue.set(project.id, current);
@@ -211,7 +219,11 @@ export default function TrendsPage() {
   const budgetRows = useMemo(() => {
     return projectBudgetRows.map((row) => {
       const effectiveRateCents =
-        row.hourlyRateCents && row.hourlyRateCents > 0 ? row.hourlyRateCents : hourlyRateCents;
+        row.hourlyRateCents && row.hourlyRateCents > 0
+          ? row.hourlyRateCents
+          : row.clientHourlyRateCents && row.clientHourlyRateCents > 0
+            ? row.clientHourlyRateCents
+            : hourlyRateCents;
       const burnCents = Math.round((row.minutes / 60) * effectiveRateCents);
       const remainingCents = row.budgetCents - burnCents;
       const burnPct = row.budgetCents > 0 ? Math.min(100, Math.round((burnCents / row.budgetCents) * 100)) : 0;
@@ -229,7 +241,11 @@ export default function TrendsPage() {
   const valueRows = useMemo(() => {
     return projectValueRows.map((row) => {
       const effectiveRateCents =
-        row.hourlyRateCents && row.hourlyRateCents > 0 ? row.hourlyRateCents : hourlyRateCents;
+        row.hourlyRateCents && row.hourlyRateCents > 0
+          ? row.hourlyRateCents
+          : row.clientHourlyRateCents && row.clientHourlyRateCents > 0
+            ? row.clientHourlyRateCents
+            : hourlyRateCents;
       const valueCents = Math.round((row.minutes / 60) * effectiveRateCents);
       return { ...row, effectiveRateCents, valueCents };
     });

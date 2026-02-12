@@ -37,6 +37,7 @@ export default function AdminPage() {
   const [newFeedName, setNewFeedName] = useState("");
   const [newFeedUrl, setNewFeedUrl] = useState("");
   const [hourlyRateDollars, setHourlyRateDollars] = useState("");
+  const [clientRateDrafts, setClientRateDrafts] = useState<Record<string, string>>({});
   const [projectBudgetDrafts, setProjectBudgetDrafts] = useState<Record<string, string>>({});
   const [projectRateDrafts, setProjectRateDrafts] = useState<Record<string, string>>({});
 
@@ -56,7 +57,7 @@ export default function AdminPage() {
         { data: dbFeedSources, error: feedSourcesError }
       ] = await Promise.all([
           supabase.from("profiles").select("role,hourly_rate_cents").eq("id", user.id).maybeSingle(),
-          supabase.from("clients").select("id,name,kind").eq("active", true).order("name"),
+          supabase.from("clients").select("id,name,kind,hourly_rate_cents").eq("active", true).order("name"),
           supabase
             .from("projects")
             .select("id,name,client_id,budget_cents,hourly_rate_cents,clients(name)")
@@ -75,7 +76,12 @@ export default function AdminPage() {
 
       setIsAdmin(profile?.role === "admin" || isEmailAdmin);
 
-      const mappedClients = (dbClients ?? []) as ClientOption[];
+      const mappedClients = (dbClients ?? []).map((client) => ({
+        id: client.id,
+        name: client.name,
+        kind: client.kind,
+        hourlyRateCents: client.hourly_rate_cents
+      })) as ClientOption[];
       const mappedProjects = (dbProjects ?? []).map((project) => ({
         id: project.id,
         name: project.name,
@@ -93,6 +99,16 @@ export default function AdminPage() {
         profile?.hourly_rate_cents && profile.hourly_rate_cents > 0
           ? (profile.hourly_rate_cents / 100).toFixed(0)
           : ""
+      );
+      setClientRateDrafts(
+        mappedClients.reduce<Record<string, string>>((acc, client) => {
+          if (client.hourlyRateCents && client.hourlyRateCents > 0) {
+            acc[client.id] = (client.hourlyRateCents / 100).toFixed(0);
+          } else {
+            acc[client.id] = "";
+          }
+          return acc;
+        }, {})
       );
       setProjectBudgetDrafts(
         mappedProjects.reduce<Record<string, string>>((acc, project) => {
@@ -283,6 +299,33 @@ export default function AdminPage() {
     }
   };
 
+  const saveClientRate = async (clientId: string) => {
+    if (!supabase) return;
+
+    const value = clientRateDrafts[clientId] ?? "";
+    const dollars = value.trim() ? Number(value) : NaN;
+    if (value.trim() && (!Number.isFinite(dollars) || dollars < 0)) {
+      setError("Client hourly rate must be a valid non-negative number.");
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      const { error: updateError } = await supabase
+        .from("clients")
+        .update({ hourly_rate_cents: value.trim() ? Math.round(dollars * 100) : null })
+        .eq("id", clientId);
+      if (updateError) throw updateError;
+      await refresh();
+    } catch (err) {
+      setError(toErrorMessage(err, "Could not save client hourly rate."));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const saveProjectFinancials = async (projectId: string) => {
     if (!supabase) return;
 
@@ -431,17 +474,44 @@ export default function AdminPage() {
 
           <ul className="mt-3 space-y-2">
             {clients.map((client) => (
-              <li key={client.id} className="flex items-center justify-between rounded-xl bg-white px-3 py-2 text-sm">
-                <span>{client.name}</span>
-                <button
-                  className="rounded-full border border-black/10 px-2 py-0.5 text-xs"
-                  onClick={() => {
-                    void archiveClient(client.id);
-                  }}
-                  disabled={saving}
-                >
-                  Archive
-                </button>
+              <li key={client.id} className="rounded-xl bg-white px-3 py-2 text-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <span>{client.name}</span>
+                  <button
+                    className="rounded-full border border-black/10 px-2 py-0.5 text-xs"
+                    onClick={() => {
+                      void archiveClient(client.id);
+                    }}
+                    disabled={saving}
+                  >
+                    Archive
+                  </button>
+                </div>
+                <div className="mt-2 flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    step="25"
+                    value={clientRateDrafts[client.id] ?? ""}
+                    onChange={(event) =>
+                      setClientRateDrafts((current) => ({
+                        ...current,
+                        [client.id]: event.target.value
+                      }))
+                    }
+                    placeholder="Client rate $/hr (optional)"
+                    className="w-44 rounded-xl border border-black/10 bg-white px-3 py-1.5 text-xs"
+                  />
+                  <button
+                    className="rounded-full border border-black/10 px-3 py-1 text-xs"
+                    onClick={() => {
+                      void saveClientRate(client.id);
+                    }}
+                    disabled={saving}
+                  >
+                    Save rate
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

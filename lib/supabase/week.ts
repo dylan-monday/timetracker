@@ -28,7 +28,11 @@ export async function fetchClientsAndProjects(supabase: SupabaseClient): Promise
   projects: ProjectOption[];
 }> {
   const [{ data: clients, error: clientError }, { data: projects, error: projectError }] = await Promise.all([
-    supabase.from("clients").select("id,name,kind").eq("active", true).order("name", { ascending: true }),
+    supabase
+      .from("clients")
+      .select("id,name,kind,hourly_rate_cents")
+      .eq("active", true)
+      .order("name", { ascending: true }),
     supabase
       .from("projects")
       .select("id,name,client_id,budget_cents,hourly_rate_cents,clients(name)")
@@ -40,7 +44,12 @@ export async function fetchClientsAndProjects(supabase: SupabaseClient): Promise
   if (projectError) throw projectError;
 
   return {
-    clients: (clients ?? []) as ClientOption[],
+    clients: (clients ?? []).map((client) => ({
+      id: client.id,
+      name: client.name,
+      kind: client.kind,
+      hourlyRateCents: client.hourly_rate_cents
+    })),
     projects: (projects ?? []).map((project) => ({
       id: project.id,
       name: project.name,
