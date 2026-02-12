@@ -573,7 +573,6 @@ export function WeekGrid() {
             imported?: number;
             updated?: number;
             calendarsScanned?: number;
-            skippedUnmapped?: number;
             sourceErrors?: Array<{ source?: string; error?: string }>;
           }
         | null;
@@ -585,7 +584,6 @@ export function WeekGrid() {
       const imported = payload?.imported ?? 0;
       const updated = payload?.updated ?? 0;
       const calendarsScanned = payload?.calendarsScanned ?? 0;
-      const skippedUnmapped = payload?.skippedUnmapped ?? 0;
       const baseMessage =
         imported || updated
           ? `Calendar sync complete: ${imported} imported, ${updated} updated across ${calendarsScanned} calendars.`
@@ -594,7 +592,7 @@ export function WeekGrid() {
         (item) => (item?.source ?? "").trim() && (item?.error ?? "").trim()
       );
       setSyncMessage(
-        `${baseMessage}${skippedUnmapped ? ` Skipped ${skippedUnmapped} unmapped events.` : ""}${
+        `${baseMessage}${
           sourceErrors.length
             ? ` Issues: ${sourceErrors
                 .slice(0, 2)

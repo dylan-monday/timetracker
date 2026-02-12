@@ -45,6 +45,7 @@ export default function AdminPage() {
   const [newFeedUrl, setNewFeedUrl] = useState("");
   const [hourlyRateDollars, setHourlyRateDollars] = useState("");
   const [clientRateDrafts, setClientRateDrafts] = useState<Record<string, string>>({});
+  const [projectNameDrafts, setProjectNameDrafts] = useState<Record<string, string>>({});
   const [projectBudgetDrafts, setProjectBudgetDrafts] = useState<Record<string, string>>({});
   const [projectRateDrafts, setProjectRateDrafts] = useState<Record<string, string>>({});
 
@@ -138,6 +139,12 @@ export default function AdminPage() {
           } else {
             acc[project.id] = "";
           }
+          return acc;
+        }, {})
+      );
+      setProjectNameDrafts(
+        mappedProjects.reduce<Record<string, string>>((acc, project) => {
+          acc[project.id] = project.name;
           return acc;
         }, {})
       );
@@ -408,6 +415,34 @@ export default function AdminPage() {
     }
   };
 
+  const saveProjectName = async (projectId: string) => {
+    if (!supabase) return;
+
+    const nextName = (projectNameDrafts[projectId] ?? "").trim();
+    if (!nextName) {
+      setError("Project name cannot be empty.");
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const { error: updateError } = await supabase
+        .from("projects")
+        .update({ name: nextName })
+        .eq("id", projectId);
+      if (updateError) throw updateError;
+      await refresh();
+      setSuccess("Saved project title.");
+    } catch (err) {
+      setError(toErrorMessage(err, "Could not save project title."));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const addFeedSource = async () => {
     if (!user || !supabase || !newFeedName.trim() || !newFeedUrl.trim()) return;
 
@@ -600,10 +635,29 @@ export default function AdminPage() {
           <ul className="mt-3 space-y-2">
             {projects.map((project) => (
               <li key={project.id} className="rounded-xl bg-white px-3 py-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <span>
-                    {project.name} <span className="text-muted">({clientNameById.get(project.clientId)})</span>
-                  </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    type="text"
+                    value={projectNameDrafts[project.id] ?? project.name}
+                    onChange={(event) =>
+                      setProjectNameDrafts((current) => ({
+                        ...current,
+                        [project.id]: event.target.value
+                      }))
+                    }
+                    className="min-w-0 flex-1 rounded-xl border border-black/10 bg-white px-3 py-1.5 text-sm"
+                    aria-label={`Project name for ${project.name}`}
+                  />
+                  <button
+                    className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs"
+                    onClick={() => {
+                      void saveProjectName(project.id);
+                    }}
+                    disabled={saving || !(projectNameDrafts[project.id] ?? "").trim()}
+                  >
+                    Save title
+                  </button>
+                  <span className="w-full text-xs text-muted sm:w-auto">({clientNameById.get(project.clientId)})</span>
                 </div>
                 <div className="mt-2 grid gap-2 sm:flex sm:flex-nowrap sm:items-center sm:overflow-x-auto sm:whitespace-nowrap sm:pb-1">
                   <input
