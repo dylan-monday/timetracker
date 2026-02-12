@@ -26,6 +26,32 @@ body {
   color: #111318;
 }
 
+@keyframes ambientGradientDrift {
+  0% {
+    background-position: 0% 0%, 100% 0%, 50% 100%;
+    opacity: 0.45;
+  }
+  50% {
+    background-position: 20% 14%, 80% 18%, 50% 82%;
+    opacity: 0.62;
+  }
+  100% {
+    background-position: 0% 0%, 100% 0%, 50% 100%;
+    opacity: 0.45;
+  }
+}
+
+.ambient-gradient-layer {
+  background-image:
+    radial-gradient(circle at 15% 10%, rgba(132, 225, 120, 0.28), transparent 42%),
+    radial-gradient(circle at 85% 8%, rgba(143, 205, 255, 0.34), transparent 42%),
+    radial-gradient(circle at 50% 100%, rgba(244, 199, 96, 0.2), transparent 45%);
+  background-size: 140% 140%, 140% 140%, 140% 140%;
+  background-repeat: no-repeat;
+  animation: ambientGradientDrift 10s ease-in-out infinite;
+  will-change: background-position, opacity;
+}
+
 @keyframes ambientFloatA {
   0% {
     transform: translate3d(0, 0, 0) scale(1);
@@ -97,6 +123,10 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .ambient-gradient-layer {
+    animation-duration: 28s;
+  }
+
   .ambient-orb-a,
   .ambient-orb-b,
   .ambient-orb-c {

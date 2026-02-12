@@ -25,6 +25,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   if (!user) {
     return (
       <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-canvas px-4">
+        <div className="ambient-gradient-layer pointer-events-none absolute inset-0" />
         <div className="ambient-orb ambient-orb-a pointer-events-none absolute -left-24 top-8 h-72 w-72 rounded-full bg-accent/30 blur-3xl" />
         <div className="ambient-orb ambient-orb-b pointer-events-none absolute bottom-0 right-0 h-80 w-80 rounded-full bg-sky-200/35 blur-3xl" />
         <div className="ambient-orb ambient-orb-c pointer-events-none absolute left-1/2 top-1/3 h-56 w-56 -translate-x-1/2 rounded-full bg-amber-100/20 blur-3xl" />
