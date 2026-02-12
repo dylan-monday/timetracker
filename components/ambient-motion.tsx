@@ -2,62 +2,74 @@
 
 import { useEffect, useRef } from "react";
 
-// Toggle this to switch between debug (obvious motion) and production (subtle motion)
-const DEBUG_MODE = true;
+interface Orb {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  baseOpacity: number;
+  opacity: number;
+  pulsePhase: number;
+  pulseSpeed: number;
+}
 
 export function AmbientMotion() {
   const layerBaseRef = useRef<HTMLDivElement | null>(null);
   const layerAccentRef = useRef<HTMLDivElement | null>(null);
   const layerEdgeRef = useRef<HTMLDivElement | null>(null);
-  const probeRef = useRef<HTMLDivElement | null>(null);
-  const probeDotRef = useRef<HTMLDivElement | null>(null);
+
+  // Store orb state in refs to persist across frames
+  const orbsRef = useRef<Orb[]>([
+    { x: 10, y: 15, vx: 0.015, vy: 0.012, baseOpacity: 0.55, opacity: 0.55, pulsePhase: 0, pulseSpeed: 0.4 },
+    { x: 60, y: 10, vx: -0.012, vy: 0.018, baseOpacity: 0.5, opacity: 0.5, pulsePhase: 2, pulseSpeed: 0.35 },
+    { x: 30, y: 50, vx: 0.018, vy: -0.014, baseOpacity: 0.45, opacity: 0.45, pulsePhase: 4, pulseSpeed: 0.45 }
+  ]);
 
   useEffect(() => {
     let rafId = 0;
+    let lastTime = 0;
 
     const tick = (time: number) => {
+      const deltaTime = lastTime ? (time - lastTime) / 16.67 : 1; // Normalize to ~60fps
+      lastTime = time;
       const t = time / 1000;
 
-      // Base layer - green tinted, top-left area
-      const baseX = Math.sin(t * 0.16) * 96;
-      const baseY = Math.cos(t * 0.14) * 72;
-      const baseScale = 1.03 + Math.sin(t * 0.08) * 0.06;
-      const baseRotate = Math.sin(t * 0.05) * 5;
+      const orbs = orbsRef.current;
+      const refs = [layerBaseRef, layerAccentRef, layerEdgeRef];
 
-      // Accent layer - blue tinted, top-right area
-      const accentX = Math.cos(t * 0.13) * 86;
-      const accentY = Math.sin(t * 0.15) * 64;
-      const accentScale = 1.02 + Math.cos(t * 0.07) * 0.08;
-      const accentRotate = Math.cos(t * 0.06) * -7;
+      // Boundaries for bouncing (percentage of viewport)
+      const minX = -15;
+      const maxX = 70;
+      const minY = -10;
+      const maxY = 60;
 
-      // Edge layer - warm neutral, center area
-      const edgeX = Math.sin(t * 0.11) * 64;
-      const edgeY = Math.cos(t * 0.12) * 54;
-      const edgeScale = 1 + Math.sin(t * 0.09) * 0.05;
-      const edgeRotate = Math.cos(t * 0.05) * 4;
+      orbs.forEach((orb, i) => {
+        // Update position
+        orb.x += orb.vx * deltaTime;
+        orb.y += orb.vy * deltaTime;
 
-      // Probe indicator
-      const probeX = Math.sin(t * 1.05) * 22;
+        // Bounce off edges with slight randomization
+        if (orb.x <= minX || orb.x >= maxX) {
+          orb.vx *= -1;
+          orb.vx += (Math.random() - 0.5) * 0.004; // Add slight randomness
+          orb.x = Math.max(minX, Math.min(maxX, orb.x));
+        }
+        if (orb.y <= minY || orb.y >= maxY) {
+          orb.vy *= -1;
+          orb.vy += (Math.random() - 0.5) * 0.004;
+          orb.y = Math.max(minY, Math.min(maxY, orb.y));
+        }
 
-      if (layerBaseRef.current) {
-        layerBaseRef.current.style.transform = `translate3d(${baseX}px, ${baseY}px, 0) rotate(${baseRotate}deg) scale(${baseScale})`;
-      }
+        // Subtle opacity pulsing
+        orb.opacity = orb.baseOpacity + Math.sin(t * orb.pulseSpeed + orb.pulsePhase) * 0.08;
 
-      if (layerAccentRef.current) {
-        layerAccentRef.current.style.transform = `translate3d(${accentX}px, ${accentY}px, 0) rotate(${accentRotate}deg) scale(${accentScale})`;
-      }
-
-      if (layerEdgeRef.current) {
-        layerEdgeRef.current.style.transform = `translate3d(${edgeX}px, ${edgeY}px, 0) rotate(${edgeRotate}deg) scale(${edgeScale})`;
-      }
-
-      if (probeRef.current) {
-        probeRef.current.style.transform = `translate3d(${probeX}px, 0, 0)`;
-      }
-
-      if (probeDotRef.current) {
-        probeDotRef.current.style.transform = `translate3d(${probeX}px, 0, 0)`;
-      }
+        // Apply transform
+        const ref = refs[i];
+        if (ref.current) {
+          ref.current.style.transform = `translate3d(${orb.x}vw, ${orb.y}vh, 0)`;
+          ref.current.style.opacity = String(orb.opacity);
+        }
+      });
 
       rafId = window.requestAnimationFrame(tick);
     };
@@ -69,72 +81,41 @@ export function AmbientMotion() {
     };
   }, []);
 
-  // Debug: unmissable solid colors. Production: subtle gradients
-  const layers = DEBUG_MODE
-    ? {
-        base: { bg: "#22c55e", opacity: 0.8, blur: 0 }, // solid green
-        accent: { bg: "#3b82f6", opacity: 0.7, blur: 0 }, // solid blue
-        edge: { bg: "#f59e0b", opacity: 0.6, blur: 0 } // solid amber
-      }
-    : {
-        base: { bg: "rgba(109, 182, 140, 0.3)", opacity: 0.4, blur: 40 },
-        accent: { bg: "rgba(116, 163, 213, 0.3)", opacity: 0.35, blur: 44 },
-        edge: { bg: "rgba(180, 165, 140, 0.25)", opacity: 0.3, blur: 30 }
-      };
-
   return (
     <div className="pointer-events-none fixed inset-0 z-[5] overflow-hidden">
-      {/* Base layer - green, top-left quadrant */}
+      {/* Green orb */}
       <div
         ref={layerBaseRef}
         className="absolute rounded-full"
         style={{
-          left: "5%",
-          top: "10%",
-          width: "50vw",
-          height: "50vh",
-          background: layers.base.bg,
-          filter: layers.base.blur ? `blur(${layers.base.blur}px)` : undefined,
-          opacity: layers.base.opacity
+          width: "55vw",
+          height: "55vh",
+          background: "radial-gradient(circle, rgba(100, 200, 130, 0.7) 0%, rgba(100, 200, 130, 0) 70%)",
+          filter: "blur(60px)"
         }}
       />
-      {/* Accent layer - blue, top-right quadrant */}
+      {/* Blue orb */}
       <div
         ref={layerAccentRef}
         className="absolute rounded-full"
         style={{
-          right: "5%",
-          top: "15%",
-          width: "45vw",
-          height: "45vh",
-          background: layers.accent.bg,
-          filter: layers.accent.blur ? `blur(${layers.accent.blur}px)` : undefined,
-          opacity: layers.accent.opacity
+          width: "50vw",
+          height: "50vh",
+          background: "radial-gradient(circle, rgba(100, 160, 220, 0.65) 0%, rgba(100, 160, 220, 0) 70%)",
+          filter: "blur(55px)"
         }}
       />
-      {/* Edge layer - amber, center-bottom */}
+      {/* Amber/warm orb */}
       <div
         ref={layerEdgeRef}
         className="absolute rounded-full"
         style={{
-          left: "25%",
-          top: "40%",
-          width: "40vw",
-          height: "40vh",
-          background: layers.edge.bg,
-          filter: layers.edge.blur ? `blur(${layers.edge.blur}px)` : undefined,
-          opacity: layers.edge.opacity
+          width: "45vw",
+          height: "45vh",
+          background: "radial-gradient(circle, rgba(220, 180, 100, 0.5) 0%, rgba(220, 180, 100, 0) 70%)",
+          filter: "blur(50px)"
         }}
       />
-      {/* Motion probe - confirms animation loop is running */}
-      {DEBUG_MODE && (
-        <div
-          ref={probeRef}
-          className="fixed bottom-2 left-[5.2rem] z-[70] flex h-4 w-16 items-center rounded-full border border-black/30 bg-black/15 px-1"
-        >
-          <div ref={probeDotRef} className="h-2 w-2 rounded-full bg-black/70" title="motion probe" />
-        </div>
-      )}
     </div>
   );
 }
