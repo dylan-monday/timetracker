@@ -2,118 +2,114 @@
 
 import { useEffect, useRef } from "react";
 
-interface Orb {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  baseOpacity: number;
-  opacity: number;
-  pulsePhase: number;
-  pulseSpeed: number;
-}
+/**
+ * Ambient Motion - Living background that reminds you time is passing
+ *
+ * Design intent (from spec):
+ * - "User can immediately perceive that background is alive"
+ * - "Calm, intentional, premium" - not frantic or gimmicky
+ * - Long cycles (20-60s), gentle pulse via scale/position
+ * - Soft atmospheric color masses with diffused edges
+ */
 
 export function AmbientMotion() {
-  const layerBaseRef = useRef<HTMLDivElement | null>(null);
-  const layerAccentRef = useRef<HTMLDivElement | null>(null);
-  const layerEdgeRef = useRef<HTMLDivElement | null>(null);
-
-  // Store orb state in refs to persist across frames
-  const orbsRef = useRef<Orb[]>([
-    { x: 10, y: 15, vx: 0.015, vy: 0.012, baseOpacity: 0.55, opacity: 0.55, pulsePhase: 0, pulseSpeed: 0.4 },
-    { x: 60, y: 10, vx: -0.012, vy: 0.018, baseOpacity: 0.5, opacity: 0.5, pulsePhase: 2, pulseSpeed: 0.35 },
-    { x: 30, y: 50, vx: 0.018, vy: -0.014, baseOpacity: 0.45, opacity: 0.45, pulsePhase: 4, pulseSpeed: 0.45 }
-  ]);
+  const field1Ref = useRef<HTMLDivElement>(null);
+  const field2Ref = useRef<HTMLDivElement>(null);
+  const field3Ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Check for reduced motion preference
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReducedMotion) return;
+
     let rafId = 0;
-    let lastTime = 0;
 
     const tick = (time: number) => {
-      const deltaTime = lastTime ? (time - lastTime) / 16.67 : 1; // Normalize to ~60fps
-      lastTime = time;
       const t = time / 1000;
 
-      const orbs = orbsRef.current;
-      const refs = [layerBaseRef, layerAccentRef, layerEdgeRef];
+      // Field 1: Green - slow diagonal drift with breathing scale
+      // ~45 second full cycle
+      const f1x = Math.sin(t * 0.14) * 18 + Math.cos(t * 0.09) * 12;
+      const f1y = Math.cos(t * 0.11) * 15 + Math.sin(t * 0.07) * 10;
+      const f1scale = 1 + Math.sin(t * 0.08) * 0.12;
+      const f1rotate = Math.sin(t * 0.05) * 8;
 
-      // Boundaries for bouncing (percentage of viewport)
-      const minX = -15;
-      const maxX = 70;
-      const minY = -10;
-      const maxY = 60;
+      // Field 2: Blue - different phase, slightly faster
+      // ~35 second full cycle
+      const f2x = Math.cos(t * 0.17) * 20 + Math.sin(t * 0.12) * 14;
+      const f2y = Math.sin(t * 0.13) * 18 + Math.cos(t * 0.08) * 12;
+      const f2scale = 1 + Math.cos(t * 0.1) * 0.1;
+      const f2rotate = Math.cos(t * 0.06) * -6;
 
-      orbs.forEach((orb, i) => {
-        // Update position
-        orb.x += orb.vx * deltaTime;
-        orb.y += orb.vy * deltaTime;
+      // Field 3: Warm amber - slowest, largest movement
+      // ~55 second full cycle
+      const f3x = Math.sin(t * 0.1) * 22 + Math.cos(t * 0.06) * 16;
+      const f3y = Math.cos(t * 0.08) * 20 + Math.sin(t * 0.05) * 14;
+      const f3scale = 1 + Math.sin(t * 0.06) * 0.15;
+      const f3rotate = Math.sin(t * 0.04) * 10;
 
-        // Bounce off edges with slight randomization
-        if (orb.x <= minX || orb.x >= maxX) {
-          orb.vx *= -1;
-          orb.vx += (Math.random() - 0.5) * 0.004; // Add slight randomness
-          orb.x = Math.max(minX, Math.min(maxX, orb.x));
-        }
-        if (orb.y <= minY || orb.y >= maxY) {
-          orb.vy *= -1;
-          orb.vy += (Math.random() - 0.5) * 0.004;
-          orb.y = Math.max(minY, Math.min(maxY, orb.y));
-        }
-
-        // Subtle opacity pulsing
-        orb.opacity = orb.baseOpacity + Math.sin(t * orb.pulseSpeed + orb.pulsePhase) * 0.08;
-
-        // Apply transform
-        const ref = refs[i];
-        if (ref.current) {
-          ref.current.style.transform = `translate3d(${orb.x}vw, ${orb.y}vh, 0)`;
-          ref.current.style.opacity = String(orb.opacity);
-        }
-      });
+      if (field1Ref.current) {
+        field1Ref.current.style.transform = `translate3d(${f1x}vw, ${f1y}vh, 0) scale(${f1scale}) rotate(${f1rotate}deg)`;
+      }
+      if (field2Ref.current) {
+        field2Ref.current.style.transform = `translate3d(${f2x}vw, ${f2y}vh, 0) scale(${f2scale}) rotate(${f2rotate}deg)`;
+      }
+      if (field3Ref.current) {
+        field3Ref.current.style.transform = `translate3d(${f3x}vw, ${f3y}vh, 0) scale(${f3scale}) rotate(${f3rotate}deg)`;
+      }
 
       rafId = window.requestAnimationFrame(tick);
     };
 
     rafId = window.requestAnimationFrame(tick);
 
-    return () => {
-      window.cancelAnimationFrame(rafId);
-    };
+    return () => window.cancelAnimationFrame(rafId);
   }, []);
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-[5] overflow-hidden">
-      {/* Green orb */}
+    <div
+      className="pointer-events-none fixed inset-0 z-[1] overflow-hidden"
+      aria-hidden="true"
+    >
+      {/* Field 1: Green - positioned upper left, drifts across */}
       <div
-        ref={layerBaseRef}
-        className="absolute rounded-full"
+        ref={field1Ref}
+        className="absolute will-change-transform"
         style={{
-          width: "55vw",
-          height: "55vh",
-          background: "radial-gradient(circle, rgba(100, 200, 130, 0.7) 0%, rgba(100, 200, 130, 0) 70%)",
-          filter: "blur(60px)"
+          left: "-10%",
+          top: "-5%",
+          width: "70vw",
+          height: "70vh",
+          background: "radial-gradient(ellipse 80% 70% at 40% 40%, rgba(120, 200, 140, 0.5) 0%, rgba(120, 200, 140, 0.2) 40%, transparent 70%)",
+          filter: "blur(40px)",
         }}
       />
-      {/* Blue orb */}
+
+      {/* Field 2: Blue - positioned upper right, counter-drifts */}
       <div
-        ref={layerAccentRef}
-        className="absolute rounded-full"
+        ref={field2Ref}
+        className="absolute will-change-transform"
         style={{
-          width: "50vw",
-          height: "50vh",
-          background: "radial-gradient(circle, rgba(100, 160, 220, 0.65) 0%, rgba(100, 160, 220, 0) 70%)",
-          filter: "blur(55px)"
+          right: "-15%",
+          top: "0%",
+          width: "65vw",
+          height: "65vh",
+          background: "radial-gradient(ellipse 75% 80% at 60% 45%, rgba(110, 170, 220, 0.45) 0%, rgba(110, 170, 220, 0.18) 45%, transparent 70%)",
+          filter: "blur(35px)",
         }}
       />
-      {/* Amber/warm orb */}
+
+      {/* Field 3: Warm amber - positioned lower center, slow breathe */}
       <div
-        ref={layerEdgeRef}
-        className="absolute rounded-full"
+        ref={field3Ref}
+        className="absolute will-change-transform"
         style={{
-          width: "45vw",
-          height: "45vh",
-          background: "radial-gradient(circle, rgba(220, 180, 100, 0.5) 0%, rgba(220, 180, 100, 0) 70%)",
-          filter: "blur(50px)"
+          left: "10%",
+          bottom: "-20%",
+          width: "80vw",
+          height: "60vh",
+          background: "radial-gradient(ellipse 70% 60% at 50% 60%, rgba(220, 185, 120, 0.4) 0%, rgba(220, 185, 120, 0.15) 50%, transparent 75%)",
+          filter: "blur(45px)",
         }}
       />
     </div>

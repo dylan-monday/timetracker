@@ -7,7 +7,6 @@ import type { ReactNode } from "react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { AmbientMotion } from "@/components/ambient-motion";
-import { BUILD_TAG } from "@/lib/build-tag";
 import { UserPill } from "@/components/user-pill";
 
 interface AppShellProps {
@@ -76,9 +75,6 @@ export function AppShell({ title, subtitle, children }: AppShellProps) {
 
         {children}
       </main>
-      <div className="pointer-events-none fixed bottom-2 left-2 z-[60] rounded bg-black/70 px-2 py-1 font-mono text-[10px] text-white/90">
-        {BUILD_TAG}
-      </div>
     </div>
   );
 }
