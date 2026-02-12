@@ -40,7 +40,17 @@ export default function TrendsPage() {
   const [range, setRange] = useState<RangeKey>("week");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hourlyRateCents, setHourlyRateCents] = useState(0);
   const [totals, setTotals] = useState({ total: 0, client: 0, internal: 0, exercise: 0 });
+  const [projectBudgetRows, setProjectBudgetRows] = useState<
+    Array<{
+      projectId: string;
+      projectName: string;
+      clientName: string;
+      minutes: number;
+      budgetCents: number;
+    }>
+  >([]);
 
   useEffect(() => {
     let mounted = true;
@@ -56,20 +66,32 @@ export default function TrendsPage() {
 
       try {
         const startDate = startForRange(range);
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("hourly_rate_cents")
+          .maybeSingle();
+        if (profileError && profileError.code !== "PGRST116") throw profileError;
+        setHourlyRateCents(profile?.hourly_rate_cents ?? 0);
 
         const { data, error: queryError } = await supabase
           .from("time_entries")
-          .select("rounded_minutes,projects(name,clients(name,kind))")
+          .select("rounded_minutes,project_id,projects(id,name,budget_cents,clients(name,kind))")
           .eq("status", "approved")
           .gte("entry_date", startDate);
 
         if (queryError) throw queryError;
 
         const next = { total: 0, client: 0, internal: 0, exercise: 0 };
+        const perProject = new Map<
+          string,
+          { projectId: string; projectName: string; clientName: string; minutes: number; budgetCents: number }
+        >();
 
         for (const row of data ?? []) {
           const minutes = row.rounded_minutes ?? 0;
-          const project = row.projects as { name?: string; clients?: { name?: string; kind?: string } } | null;
+          const project = row.projects as
+            | { id?: string; name?: string; budget_cents?: number | null; clients?: { name?: string; kind?: string } }
+            | null;
           const clientKind = project?.clients?.kind;
           const clientName = (project?.clients?.name ?? "").toLowerCase();
 
@@ -84,10 +106,25 @@ export default function TrendsPage() {
           } else {
             next.client += minutes;
           }
+
+          if (project?.id && project?.budget_cents && project.budget_cents > 0) {
+            const current = perProject.get(project.id) ?? {
+              projectId: project.id,
+              projectName: project.name ?? "Untitled project",
+              clientName: project.clients?.name ?? "Client",
+              minutes: 0,
+              budgetCents: project.budget_cents
+            };
+            current.minutes += minutes;
+            perProject.set(project.id, current);
+          }
         }
 
         if (mounted) {
           setTotals(next);
+          setProjectBudgetRows(
+            Array.from(perProject.values()).sort((a, b) => b.minutes - a.minutes)
+          );
         }
       } catch (err) {
         if (mounted) {
@@ -119,6 +156,28 @@ export default function TrendsPage() {
       { label: "Exercise", value: toHours(totals.exercise), detail: pct(totals.exercise) }
     ];
   }, [totals]);
+
+  const budgetRows = useMemo(() => {
+    if (!hourlyRateCents) return [];
+
+    return projectBudgetRows.map((row) => {
+      const burnCents = Math.round((row.minutes / 60) * hourlyRateCents);
+      const remainingCents = row.budgetCents - burnCents;
+      const burnPct = row.budgetCents > 0 ? Math.min(100, Math.round((burnCents / row.budgetCents) * 100)) : 0;
+
+      return {
+        ...row,
+        burnCents,
+        remainingCents,
+        burnPct
+      };
+    });
+  }, [hourlyRateCents, projectBudgetRows]);
+
+  const fmtMoney = (cents: number) =>
+    new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(
+      cents / 100
+    );
 
   return (
     <AppShell
@@ -157,10 +216,33 @@ export default function TrendsPage() {
 
       <section className="rounded-2xl border border-black/5 bg-panel p-4 shadow-soft">
         <h2 className="text-base font-semibold">Budget pulse (loose tracking)</h2>
-        <p className="mt-1 text-sm text-muted">Burn = rounded hours x user hourly rate against project budget.</p>
-        <div className="mt-3 rounded-xl border border-dashed border-black/15 p-3 text-sm text-muted">
-          Budget-by-project cards will be populated once project budgets and hourly rate are set in profile.
-        </div>
+        <p className="mt-1 text-sm text-muted">
+          Burn = approved rounded hours x hourly rate ({hourlyRateCents ? fmtMoney(hourlyRateCents) : "$0"}/hr).
+        </p>
+        {budgetRows.length ? (
+          <div className="mt-3 grid gap-3 lg:grid-cols-2">
+            {budgetRows.map((row) => (
+              <article key={row.projectId} className="rounded-xl bg-white p-3">
+                <p className="text-sm font-medium text-ink">{row.projectName}</p>
+                <p className="text-xs text-muted">{row.clientName}</p>
+                <div className="mt-2 flex items-center justify-between text-xs text-muted">
+                  <span>Budget {fmtMoney(row.budgetCents)}</span>
+                  <span>Burn {fmtMoney(row.burnCents)} ({row.burnPct}%)</span>
+                </div>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-black/10">
+                  <div className="h-full bg-ink" style={{ width: `${Math.max(2, row.burnPct)}%` }} />
+                </div>
+                <p className="mt-2 text-xs text-muted">
+                  Remaining {row.remainingCents >= 0 ? fmtMoney(row.remainingCents) : `-${fmtMoney(Math.abs(row.remainingCents))}`}
+                </p>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-3 rounded-xl border border-dashed border-black/15 p-3 text-sm text-muted">
+            Add hourly rate and project budgets in Admin Mode to see budget pulse.
+          </div>
+        )}
       </section>
     </AppShell>
   );

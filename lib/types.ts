@@ -60,6 +60,7 @@ export interface ProjectOption {
   name: string;
   clientId: string;
   clientName: string;
+  budgetCents?: number | null;
 }
 
 export interface DraftEntry {
