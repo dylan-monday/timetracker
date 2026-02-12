@@ -5,34 +5,6 @@ import { useEffect, useRef } from "react";
 // Toggle this to switch between debug (obvious motion) and production (subtle motion)
 const DEBUG_MODE = true;
 
-// Debug: high visibility to confirm animation works
-// Production: subtle, premium, barely-there motion
-const config = DEBUG_MODE
-  ? {
-      baseOpacity: 0.7,
-      accentOpacity: 0.6,
-      edgeOpacity: 0.5,
-      baseBlur: 24,
-      accentBlur: 28,
-      edgeBlur: 8,
-      // More saturated, visible colors for debug
-      baseColor: "rgba(100, 200, 130, 0.5)",
-      accentColor: "rgba(100, 160, 220, 0.5)",
-      edgeColor: "rgba(180, 160, 120, 0.4)"
-    }
-  : {
-      baseOpacity: 0.35,
-      accentOpacity: 0.3,
-      edgeOpacity: 0.25,
-      baseBlur: 40,
-      accentBlur: 44,
-      edgeBlur: 20,
-      // Subtle, muted colors for production
-      baseColor: "rgba(109, 182, 140, 0.25)",
-      accentColor: "rgba(116, 163, 213, 0.25)",
-      edgeColor: "rgba(180, 165, 140, 0.2)"
-    };
-
 export function AmbientMotion() {
   const layerBaseRef = useRef<HTMLDivElement | null>(null);
   const layerAccentRef = useRef<HTMLDivElement | null>(null);
@@ -97,36 +69,61 @@ export function AmbientMotion() {
     };
   }, []);
 
+  // Debug: unmissable solid colors. Production: subtle gradients
+  const layers = DEBUG_MODE
+    ? {
+        base: { bg: "#22c55e", opacity: 0.8, blur: 0 }, // solid green
+        accent: { bg: "#3b82f6", opacity: 0.7, blur: 0 }, // solid blue
+        edge: { bg: "#f59e0b", opacity: 0.6, blur: 0 } // solid amber
+      }
+    : {
+        base: { bg: "rgba(109, 182, 140, 0.3)", opacity: 0.4, blur: 40 },
+        accent: { bg: "rgba(116, 163, 213, 0.3)", opacity: 0.35, blur: 44 },
+        edge: { bg: "rgba(180, 165, 140, 0.25)", opacity: 0.3, blur: 30 }
+      };
+
   return (
-    <div className="pointer-events-none fixed inset-0 z-[1] overflow-hidden">
-      {/* Base layer - green, top-left */}
+    <div className="pointer-events-none fixed inset-0 z-[5] overflow-hidden">
+      {/* Base layer - green, top-left quadrant */}
       <div
         ref={layerBaseRef}
-        className="absolute -left-[20vw] -top-[15vh] h-[80vh] w-[75vw] rounded-[40%]"
+        className="absolute rounded-full"
         style={{
-          background: `radial-gradient(circle at 45% 45%, ${config.baseColor} 0%, transparent 70%)`,
-          filter: `blur(${config.baseBlur}px)`,
-          opacity: config.baseOpacity
+          left: "5%",
+          top: "10%",
+          width: "50vw",
+          height: "50vh",
+          background: layers.base.bg,
+          filter: layers.base.blur ? `blur(${layers.base.blur}px)` : undefined,
+          opacity: layers.base.opacity
         }}
       />
-      {/* Accent layer - blue, top-right */}
+      {/* Accent layer - blue, top-right quadrant */}
       <div
         ref={layerAccentRef}
-        className="absolute -right-[18vw] top-[5vh] h-[72vh] w-[65vw] rounded-[35%]"
+        className="absolute rounded-full"
         style={{
-          background: `radial-gradient(circle at 55% 50%, ${config.accentColor} 0%, transparent 70%)`,
-          filter: `blur(${config.accentBlur}px)`,
-          opacity: config.accentOpacity
+          right: "5%",
+          top: "15%",
+          width: "45vw",
+          height: "45vh",
+          background: layers.accent.bg,
+          filter: layers.accent.blur ? `blur(${layers.accent.blur}px)` : undefined,
+          opacity: layers.accent.opacity
         }}
       />
-      {/* Edge layer - warm neutral, center */}
+      {/* Edge layer - amber, center-bottom */}
       <div
         ref={layerEdgeRef}
-        className="absolute left-[20vw] top-[30vh] h-[50vh] w-[50vw] rounded-[30%]"
+        className="absolute rounded-full"
         style={{
-          background: `radial-gradient(circle at 50% 50%, ${config.edgeColor} 0%, transparent 65%)`,
-          filter: `blur(${config.edgeBlur}px)`,
-          opacity: config.edgeOpacity
+          left: "25%",
+          top: "40%",
+          width: "40vw",
+          height: "40vh",
+          background: layers.edge.bg,
+          filter: layers.edge.blur ? `blur(${layers.edge.blur}px)` : undefined,
+          opacity: layers.edge.opacity
         }}
       />
       {/* Motion probe - confirms animation loop is running */}
