@@ -18,6 +18,22 @@ interface ParsedIcsEvent {
   roundedMinutes: number;
 }
 
+function toErrorDetails(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === "object" && error !== null) {
+    const maybe = error as { message?: unknown; code?: unknown; details?: unknown; hint?: unknown };
+    const parts = [
+      typeof maybe.message === "string" ? maybe.message : null,
+      typeof maybe.code === "string" ? `code ${maybe.code}` : null,
+      typeof maybe.details === "string" ? maybe.details : null,
+      typeof maybe.hint === "string" ? maybe.hint : null
+    ].filter(Boolean);
+    if (parts.length) return parts.join(" | ");
+  }
+  if (typeof error === "string" && error.trim()) return error;
+  return "Unknown source error.";
+}
+
 function normalizeText(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9@\s.-]/g, " ");
 }
@@ -360,7 +376,7 @@ export async function POST(request: Request) {
       } catch (sourceError) {
         sourceErrors.push({
           source: source.name,
-          error: sourceError instanceof Error ? sourceError.message : "Unknown source error."
+          error: toErrorDetails(sourceError)
         });
       }
     }
