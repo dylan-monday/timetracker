@@ -30,9 +30,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
         <section className="w-full max-w-xl rounded-[1.6rem] border border-black/10 bg-panel/95 p-8 shadow-[0_20px_80px_rgba(17,19,24,0.12)] backdrop-blur">
           <div className="mb-6 flex items-center justify-between">
-            <div className="inline-flex items-center gap-3 rounded-full border border-black/10 bg-white/70 px-3 py-2">
-              <Image src="/m26-black-simple.svg" alt="M+P" width={28} height={28} className="h-7 w-7" />
-              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">M+P Time</span>
+            <div className="inline-flex items-center rounded-full border border-black/10 bg-white/70 px-4 py-2">
+              <Image src="/MP26.svg" alt="M+P Time" width={176} height={36} className="h-8 w-auto sm:h-9" priority />
             </div>
             <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-accentStrong shadow-[0_0_14px_rgba(88,200,87,.8)]" />
           </div>
@@ -42,11 +41,6 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             <br />
             Keep the signal.
           </h1>
-          <p className="mt-3 max-w-lg text-sm leading-relaxed text-muted">
-            A pared-back weekly canvas for creative teams. Fast capture, less admin drag, and clearer
-            trend lines.
-          </p>
-
           <button
             type="button"
             className="mt-7 w-full rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-45"
@@ -60,7 +54,6 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
             <span>Only @mondayandpartners.com accounts are allowed.</span>
-            <span>Default: light, crisp, mobile-first.</span>
           </div>
 
           {!envReady ? (
