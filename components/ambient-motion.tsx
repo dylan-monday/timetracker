@@ -7,6 +7,7 @@ export function AmbientMotion() {
   const layerBRef = useRef<HTMLDivElement | null>(null);
   const layerCRef = useRef<HTMLDivElement | null>(null);
   const sheenRef = useRef<HTMLDivElement | null>(null);
+  const bandRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let rafId = 0;
@@ -29,7 +30,9 @@ export function AmbientMotion() {
       const cScale = 1.01 + Math.sin(t * 0.2) * 0.06;
       const cOpacity = 0.08 + (Math.sin(t * 0.22) + 1) * 0.05;
       const sheenPos = (t * 18) % 200;
-      const sheenOpacity = 0.05 + (Math.sin(t * 0.3) + 1) * 0.025;
+      const sheenOpacity = 0.09 + (Math.sin(t * 0.3) + 1) * 0.045;
+      const bandX = Math.sin(t * 0.35) * 38;
+      const bandOpacity = 0.06 + (Math.cos(t * 0.42) + 1) * 0.06;
 
       if (layerARef.current) {
         layerARef.current.style.transform = `translate3d(${aX}%, ${aY}%, 0) scale(${aScale})`;
@@ -49,6 +52,11 @@ export function AmbientMotion() {
       if (sheenRef.current) {
         sheenRef.current.style.backgroundPosition = `${sheenPos}% 0`;
         sheenRef.current.style.opacity = String(sheenOpacity);
+      }
+
+      if (bandRef.current) {
+        bandRef.current.style.transform = `translate3d(${bandX}vw, 0, 0)`;
+        bandRef.current.style.opacity = String(bandOpacity);
       }
 
       rafId = window.requestAnimationFrame(tick);
@@ -92,9 +100,17 @@ export function AmbientMotion() {
         className="absolute inset-0"
         style={{
           backgroundImage:
-            "linear-gradient(105deg, rgba(255,255,255,0) 30%, rgba(255,255,255,0.14) 50%, rgba(255,255,255,0) 70%)",
+            "linear-gradient(105deg, rgba(255,255,255,0) 30%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0) 70%)",
           backgroundSize: "180% 100%",
           backgroundRepeat: "no-repeat"
+        }}
+      />
+      <div
+        ref={bandRef}
+        className="absolute -left-1/2 top-0 h-full w-1/3 blur-[30px]"
+        style={{
+          background:
+            "linear-gradient(90deg, rgba(190,213,196,0), rgba(190,213,196,0.28), rgba(190,213,196,0))"
         }}
       />
     </div>
