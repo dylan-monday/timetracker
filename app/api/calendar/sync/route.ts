@@ -43,7 +43,6 @@ function includesName(haystack: string, name: string): boolean {
 function chooseProjectForEvent(args: {
   searchableText: string;
   projects: CandidateProject[];
-  fallbackProjectId: string;
 }) {
   const normalizedProjects = args.projects.map((project) => {
     const client = Array.isArray(project.clients) ? project.clients[0] : project.clients;
@@ -76,7 +75,7 @@ function chooseProjectForEvent(args: {
   }
 
   return {
-    projectId: args.fallbackProjectId,
+    projectId: null,
     clientId: null,
     confidence: 0.2
   };
@@ -277,53 +276,6 @@ export async function POST(request: Request) {
       .eq("active", true);
     if (projectsError) throw projectsError;
 
-    const { data: inboxClient } = await supabase
-      .from("clients")
-      .select("id,name")
-      .eq("owner_id", userId)
-      .ilike("name", "Admin")
-      .maybeSingle();
-
-    let fallbackClientId = inboxClient?.id ?? null;
-    if (!fallbackClientId) {
-      const { data: insertedClient, error: clientError } = await supabase
-        .from("clients")
-        .insert({
-          owner_id: userId,
-          name: "Admin",
-          kind: "internal",
-          active: true
-        })
-        .select("id")
-        .single();
-      if (clientError) throw clientError;
-      fallbackClientId = insertedClient.id;
-    }
-
-    const { data: inboxProject } = await supabase
-      .from("projects")
-      .select("id")
-      .eq("owner_id", userId)
-      .eq("client_id", fallbackClientId)
-      .ilike("name", "Calendar Inbox")
-      .maybeSingle();
-
-    let fallbackProjectId = inboxProject?.id ?? null;
-    if (!fallbackProjectId) {
-      const { data: insertedProject, error: projectError } = await supabase
-        .from("projects")
-        .insert({
-          owner_id: userId,
-          client_id: fallbackClientId,
-          name: "Calendar Inbox",
-          active: true
-        })
-        .select("id")
-        .single();
-      if (projectError) throw projectError;
-      fallbackProjectId = insertedProject.id;
-    }
-
     let imported = 0;
     let scannedEvents = 0;
 
@@ -351,8 +303,7 @@ export async function POST(request: Request) {
         const searchableText = normalizeText([event.title, event.description].join(" "));
         const guess = chooseProjectForEvent({
           searchableText,
-          projects: (projects ?? []) as CandidateProject[],
-          fallbackProjectId
+          projects: (projects ?? []) as CandidateProject[]
         });
 
         const externalEventId = `${source.id}:${event.uid}:${event.startsAt.toISOString()}`;

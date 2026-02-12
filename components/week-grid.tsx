@@ -890,7 +890,8 @@ export function WeekGrid() {
                     onClick={() => {
                       void handleDraftApprove(entry.id);
                     }}
-                    disabled={draftActionId === entry.id}
+                    disabled={draftActionId === entry.id || !entry.projectId}
+                    title={!entry.projectId ? "Assign a project before approving." : undefined}
                   >
                     Approve
                   </button>

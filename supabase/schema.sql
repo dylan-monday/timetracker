@@ -87,7 +87,7 @@ create table if not exists public.project_merge_events (
 create table if not exists public.time_entries (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references public.profiles(id) on delete cascade,
-  project_id uuid not null references public.projects(id) on delete restrict,
+  project_id uuid references public.projects(id) on delete set null,
   entry_date date not null,
   start_time timestamptz,
   end_time timestamptz,
