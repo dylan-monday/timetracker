@@ -3,9 +3,11 @@
 import { useEffect, useRef } from "react";
 
 export function AmbientMotion() {
-  const layerARef = useRef<HTMLDivElement | null>(null);
-  const layerBRef = useRef<HTMLDivElement | null>(null);
-  const layerCRef = useRef<HTMLDivElement | null>(null);
+  const layerBaseRef = useRef<HTMLDivElement | null>(null);
+  const layerAccentRef = useRef<HTMLDivElement | null>(null);
+  const layerEdgeRef = useRef<HTMLDivElement | null>(null);
+  const probeRef = useRef<HTMLDivElement | null>(null);
+  const probeDotRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let rafId = 0;
@@ -13,30 +15,41 @@ export function AmbientMotion() {
     const tick = (time: number) => {
       const t = time / 1000;
 
-      const aX = Math.sin(t * 0.12) * 14;
-      const aY = Math.cos(t * 0.1) * 12;
-      const aScale = 1.04 + Math.sin(t * 0.08) * 0.06;
-      const aRotate = Math.sin(t * 0.06) * 5;
+      const baseX = Math.sin(t * 0.16) * 96;
+      const baseY = Math.cos(t * 0.14) * 72;
+      const baseScale = 1.03 + Math.sin(t * 0.08) * 0.06;
+      const baseRotate = Math.sin(t * 0.05) * 5;
 
-      const bX = Math.cos(t * 0.1) * 12;
-      const bY = Math.sin(t * 0.12) * 13;
-      const bScale = 1.02 + Math.cos(t * 0.08) * 0.06;
-      const bRotate = Math.cos(t * 0.07) * -6;
+      const accentX = Math.cos(t * 0.13) * 86;
+      const accentY = Math.sin(t * 0.15) * 64;
+      const accentScale = 1.02 + Math.cos(t * 0.07) * 0.08;
+      const accentRotate = Math.cos(t * 0.06) * -7;
 
-      const cX = Math.sin(t * 0.06) * 5;
-      const cY = Math.cos(t * 0.08) * 5;
-      const cScale = 1.01 + Math.sin(t * 0.05) * 0.04;
+      const edgeX = Math.sin(t * 0.11) * 64;
+      const edgeY = Math.cos(t * 0.12) * 54;
+      const edgeScale = 1 + Math.sin(t * 0.09) * 0.05;
+      const edgeRotate = Math.cos(t * 0.05) * 4;
 
-      if (layerARef.current) {
-        layerARef.current.style.transform = `translate3d(${aX}%, ${aY}%, 0) rotate(${aRotate}deg) scale(${aScale})`;
+      const probeX = Math.sin(t * 1.05) * 22;
+
+      if (layerBaseRef.current) {
+        layerBaseRef.current.style.transform = `translate3d(${baseX}px, ${baseY}px, 0) rotate(${baseRotate}deg) scale(${baseScale})`;
       }
 
-      if (layerBRef.current) {
-        layerBRef.current.style.transform = `translate3d(${bX}%, ${bY}%, 0) rotate(${bRotate}deg) scale(${bScale})`;
+      if (layerAccentRef.current) {
+        layerAccentRef.current.style.transform = `translate3d(${accentX}px, ${accentY}px, 0) rotate(${accentRotate}deg) scale(${accentScale})`;
       }
 
-      if (layerCRef.current) {
-        layerCRef.current.style.transform = `translate3d(${cX}%, ${cY}%, 0) scale(${cScale})`;
+      if (layerEdgeRef.current) {
+        layerEdgeRef.current.style.transform = `translate3d(${edgeX}px, ${edgeY}px, 0) rotate(${edgeRotate}deg) scale(${edgeScale})`;
+      }
+
+      if (probeRef.current) {
+        probeRef.current.style.transform = `translate3d(${probeX}px, 0, 0)`;
+      }
+
+      if (probeDotRef.current) {
+        probeDotRef.current.style.transform = `translate3d(${probeX}px, 0, 0)`;
       }
 
       rafId = window.requestAnimationFrame(tick);
@@ -50,33 +63,43 @@ export function AmbientMotion() {
   }, []);
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
+    <div className="pointer-events-none fixed inset-0 z-[1] overflow-hidden">
       <div
-        ref={layerARef}
-        className="absolute -left-1/3 -top-1/3 h-[180%] w-[180%] rounded-[24%] blur-[8px]"
+        ref={layerBaseRef}
+        className="absolute -left-[25vw] -top-[18vh] h-[76vh] w-[72vw] rounded-[28%] blur-[32px]"
         style={{
-          background: "radial-gradient(circle, rgba(22,40,60,0.28) 0%, rgba(22,40,60,0.06) 60%, rgba(22,40,60,0) 75%)",
-          outline: "1px solid rgba(16,34,52,0.22)",
-          opacity: 0.28
+          background:
+            "radial-gradient(circle at 42% 42%, rgba(109,182,140,0.36) 0%, rgba(109,182,140,0.16) 48%, rgba(109,182,140,0) 74%)",
+          mixBlendMode: "multiply",
+          opacity: 0.46
         }}
       />
       <div
-        ref={layerBRef}
-        className="absolute -right-1/3 -bottom-1/3 h-[180%] w-[180%] rounded-[22%] blur-[10px]"
+        ref={layerAccentRef}
+        className="absolute -right-[22vw] top-[8vh] h-[68vh] w-[62vw] rounded-[24%] blur-[34px]"
         style={{
-          background: "radial-gradient(circle, rgba(36,58,84,0.24) 0%, rgba(36,58,84,0.06) 62%, rgba(36,58,84,0) 78%)",
-          outline: "1px solid rgba(26,50,76,0.2)",
-          opacity: 0.24
+          background:
+            "radial-gradient(circle at 50% 48%, rgba(116,163,213,0.38) 0%, rgba(116,163,213,0.18) 50%, rgba(116,163,213,0) 76%)",
+          mixBlendMode: "multiply",
+          opacity: 0.42
         }}
       />
       <div
-        ref={layerCRef}
-        className="absolute left-1/4 top-1/4 h-[140%] w-[140%] rounded-[28%] blur-[16px]"
+        ref={layerEdgeRef}
+        className="absolute left-[24vw] top-[34vh] h-[44vh] w-[44vw] rounded-[22%] border border-[#3e5568]/35 blur-[10px]"
         style={{
-          background: "radial-gradient(circle, rgba(20,20,24,0.14) 0%, rgba(20,20,24,0.04) 60%, rgba(20,20,24,0) 76%)",
-          opacity: 0.16
+          background:
+            "radial-gradient(circle at 45% 45%, rgba(79,109,135,0.18) 0%, rgba(79,109,135,0.07) 50%, rgba(79,109,135,0) 76%)",
+          mixBlendMode: "multiply",
+          opacity: 0.34
         }}
       />
+      <div
+        ref={probeRef}
+        className="fixed bottom-2 left-[5.2rem] z-[70] flex h-4 w-16 items-center rounded-full border border-black/20 bg-black/10 px-1"
+      >
+        <div ref={probeDotRef} className="h-2 w-2 rounded-full bg-black/60" title="motion probe" />
+      </div>
     </div>
   );
 }
