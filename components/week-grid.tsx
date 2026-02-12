@@ -511,7 +511,7 @@ export function WeekGrid() {
   };
 
   const handleCalendarSync = async () => {
-    if (!session?.access_token) {
+    if (!supabase) {
       setError("Sign in again and retry sync.");
       setSyncMessage(null);
       return;
@@ -522,10 +522,18 @@ export function WeekGrid() {
     setSyncMessage(null);
 
     try {
+      const { data: refreshedAuth, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) throw refreshError;
+
+      const accessToken = refreshedAuth.session?.access_token ?? session?.access_token;
+      if (!accessToken) {
+        throw new Error("Sign in again and retry sync.");
+      }
+
       const response = await fetch("/api/calendar/sync", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${session.access_token}`
+          Authorization: `Bearer ${accessToken}`
         }
       });
 
