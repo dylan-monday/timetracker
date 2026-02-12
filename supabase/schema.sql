@@ -262,13 +262,8 @@ begin
   select p_owner_id, v.name, 'internal'::public.client_kind, true
   from (
     values
-      ('Business Dev'),
-      ('Admin'),
-      ('Team'),
-      ('Learning'),
-      ('Recruiting'),
-      ('Marketing'),
-      ('Exercise')
+      ('M+P'),
+      ('Personal')
   ) as v(name)
   where not exists (
     select 1
