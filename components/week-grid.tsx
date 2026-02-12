@@ -58,9 +58,9 @@ const REFLECTION_QUOTES = [
 ];
 
 function stateClass(state: "ok" | "attention" | "gap"): string {
-  if (state === "ok") return "bg-accent/40 text-ink";
-  if (state === "attention") return "bg-warning/40 text-ink";
-  return "bg-sky-200/70 text-ink";
+  if (state === "ok") return "border border-accent/35 bg-accent/25 text-ink";
+  if (state === "attention") return "border border-sky-200/80 bg-sky-100/80 text-ink";
+  return "border border-sky-300/85 bg-sky-100 text-ink";
 }
 
 function isWeekendIsoDate(isoDate: string): boolean {
@@ -637,8 +637,15 @@ export function WeekGrid() {
               </p>
               <p className="font-numeric text-xs text-muted">{minutesToDisplay(mobileMinutes)}</p>
             </div>
-            <div className={`mt-2 font-numeric rounded-full px-2 py-1 text-[11px] font-medium ${stateClass(mobileStatus)}`}>
-              {mobileStatus === "ok" ? "On track" : `${Math.round(missingMinutes(mobileMinutes) / 60)}h open (8-5)`}
+            <div className={`mt-2 font-numeric rounded-2xl px-3 py-2 text-[11px] leading-tight ${stateClass(mobileStatus)}`}>
+              {mobileStatus === "ok" ? (
+                <span className="font-medium">On track</span>
+              ) : (
+                <>
+                  <span className="font-semibold">{Math.round(missingMinutes(mobileMinutes) / 60)}h open</span>
+                  <span className="ml-1 text-[10px] text-muted">window 8-5</span>
+                </>
+              )}
             </div>
           </div>
 
@@ -738,11 +745,16 @@ export function WeekGrid() {
                         </span>
                       </div>
                       <div
-                        className={`font-numeric rounded-full px-2 py-1 text-[11px] font-medium ${stateClass(status)}`}
+                        className={`font-numeric rounded-2xl px-3 py-2 text-[11px] leading-tight ${stateClass(status)}`}
                       >
-                        {status === "ok"
-                          ? "On track"
-                          : `${Math.round(missingMinutes(minutes) / 60)}h open (8-5)`}
+                        {status === "ok" ? (
+                          <span className="font-medium">On track</span>
+                        ) : (
+                          <>
+                            <span className="font-semibold">{Math.round(missingMinutes(minutes) / 60)}h open</span>
+                            <span className="ml-1 text-[10px] text-muted">window 8-5</span>
+                          </>
+                        )}
                       </div>
                     </th>
                   );
