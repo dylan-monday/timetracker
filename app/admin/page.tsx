@@ -608,7 +608,7 @@ export default function AdminPage() {
                     {project.name} <span className="text-muted">({clientNameById.get(project.clientId)})</span>
                   </span>
                 </div>
-                <div className="mt-2 flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-1">
+                <div className="mt-2 flex flex-nowrap items-center gap-2 overflow-x-auto whitespace-nowrap pb-1">
                   <input
                     type="number"
                     min="0"
@@ -647,7 +647,7 @@ export default function AdminPage() {
                     Save budget + rate
                   </button>
                   <button
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-red-200 bg-red-50 text-red-700 disabled:opacity-50"
+                    className="inline-flex h-8 shrink-0 items-center justify-center rounded-full border border-red-200 bg-red-50 px-2.5 text-red-700 disabled:opacity-50"
                     onClick={() => {
                       void archiveProject(project.id);
                     }}
