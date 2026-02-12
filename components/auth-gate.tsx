@@ -39,7 +39,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           </div>
 
           <h1 className="font-display text-center text-5xl tracking-tight text-ink sm:text-6xl">
-            Time is agency, not accounting.
+            Time is agency,
+            <br />
+            not accounting.
           </h1>
           <button
             type="button"
