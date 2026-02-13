@@ -462,56 +462,60 @@ export default function TrendsPage() {
     ];
   }, [totals, prevTotals, historicalTotals, range]);
 
-  // Enhanced narrative
-  const narrative = useMemo(() => {
+  // Structured narrative for editorial card
+  interface NarrativeLines {
+    headline: string;
+    detail: string;
+    personal: string;
+    metadata: string;
+  }
+
+  const narrativeLines = useMemo((): NarrativeLines | null => {
     if (loading || totals.total === 0) return null;
 
-    const parts: string[] = [];
     const personalValueCents = Math.round((totals.personal / 60) * hourlyRateCents);
 
-    // Main focus with top clients
-    if (totals.client > totals.internal && totals.client > totals.personal) {
-      const clientNames = topClients.slice(0, 2).map(c => c.name);
-      const clientHours = topClients.slice(0, 2).reduce((sum, c) => sum + c.minutes, 0) / 60;
-      if (clientNames.length > 0) {
-        parts.push(`Most of your ${range} went to client delivery — ${clientNames.join(" and ")} took the biggest share at ${clientHours.toFixed(1)}h combined.`);
-      } else {
-        parts.push(`Most of your ${range} went to client delivery.`);
-      }
-    } else if (totals.internal > totals.client && totals.internal > totals.personal) {
-      parts.push(`You focused on internal investment this ${range} at ${toHours(totals.internal)}.`);
+    // Line 1: Headline - dominant category
+    let headline = "";
+    if (totals.client >= totals.internal && totals.client >= totals.personal) {
+      headline = `Client delivery took the biggest share this ${range}.`;
+    } else if (totals.internal > totals.client && totals.internal >= totals.personal) {
+      headline = `Internal investment led this ${range}.`;
+    } else {
+      headline = `Personal time took priority this ${range}.`;
     }
 
-    // Personal time with dollar value
+    // Line 2: Top 2 projects/clients by hours
+    const topTwo = topClients.slice(0, 2);
+    let detail = "";
+    if (topTwo.length >= 2) {
+      const combinedHours = (topTwo[0].minutes + topTwo[1].minutes) / 60;
+      detail = `${topTwo[0].name} and ${topTwo[1].name} led with ${combinedHours.toFixed(1)}h combined.`;
+    } else if (topTwo.length === 1) {
+      detail = `${topTwo[0].name} led with ${(topTwo[0].minutes / 60).toFixed(1)}h.`;
+    } else {
+      detail = "No client work logged this period.";
+    }
+
+    // Line 3: Personal time investment
+    let personal = "";
     if (totals.personal > 0) {
       const personalProjectNames = personalProjects.slice(0, 2).map(p => p.name.toLowerCase());
-      const personalDesc = personalProjectNames.length > 0
-        ? ` (${personalProjectNames.join(" and ")})`
-        : "";
+      const personalDesc = personalProjectNames.length > 0 ? personalProjectNames.join(" & ") : "personal time";
       if (hourlyRateCents > 0) {
-        parts.push(`You invested ${toHours(totals.personal)} in yourself${personalDesc} — worth about ${fmtMoney(personalValueCents)} at your rate.`);
+        personal = `You invested ${toHours(totals.personal)} in yourself — ${personalDesc} — worth about ${fmtMoney(personalValueCents)} at your rate.`;
       } else {
-        parts.push(`You invested ${toHours(totals.personal)} in yourself${personalDesc}.`);
+        personal = `You invested ${toHours(totals.personal)} in yourself — ${personalDesc}.`;
       }
-    } else if (totals.total > 0) {
-      parts.push("No personal time captured — not a judgment, just a mirror.");
+    } else {
+      personal = "No personal time captured this " + range + " — just an observation, not a judgment.";
     }
 
-    // Comparison to previous period
-    if (prevTotals && prevTotals.total > 0) {
-      const clientDiff = totals.client - prevTotals.client;
-      const clientDiffPct = prevTotals.client > 0 ? Math.round((clientDiff / prevTotals.client) * 100) : 0;
-      if (Math.abs(clientDiffPct) >= 10) {
-        if (clientDiff > 0) {
-          parts.push(`Client delivery is up ${clientDiffPct}% compared to last ${range}.`);
-        } else {
-          parts.push(`Client delivery is down ${Math.abs(clientDiffPct)}% from last ${range}.`);
-        }
-      }
-    }
+    // Line 4: Metadata - remaining numbers
+    const metadata = `Internal work: ${toHours(totals.internal)} · Total: ${toHours(totals.total)}`;
 
-    return parts.join(" ");
-  }, [loading, totals, prevTotals, topClients, personalProjects, hourlyRateCents, range]);
+    return { headline, detail, personal, metadata };
+  }, [loading, totals, topClients, personalProjects, hourlyRateCents, range]);
 
   // Value rows with dollar values
   const valueRows = useMemo(() => {
@@ -622,10 +626,21 @@ export default function TrendsPage() {
 
         </section>
 
-      {/* Narrative */}
-      {narrative && (
-        <section className="rounded-2xl border border-black/5 bg-panel p-5 shadow-soft sm:p-6">
-          <p className="text-base leading-relaxed text-ink sm:text-lg">{narrative}</p>
+      {/* Editorial Narrative Card */}
+      {narrativeLines && (
+        <section className="rounded-2xl bg-[#2d2a26] px-6 py-8 shadow-soft sm:px-8 sm:py-10">
+          <p className="text-lg font-medium leading-snug text-[#f5f4f1] sm:text-xl">
+            {narrativeLines.headline}
+          </p>
+          <p className="mt-3 text-[15px] leading-relaxed text-[#f5f4f1]/75 sm:text-base">
+            {narrativeLines.detail}
+          </p>
+          <p className="mt-2 text-[15px] leading-relaxed sm:text-base">
+            <span className="text-[var(--color-personal)]">{narrativeLines.personal}</span>
+          </p>
+          <p className="mt-4 text-[13px] text-[#f5f4f1]/50">
+            {narrativeLines.metadata}
+          </p>
         </section>
       )}
 
