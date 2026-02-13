@@ -536,7 +536,7 @@ export default function AdminPage() {
     <AppShell title="Settings">
       {!isAdmin && !loading ? (
         <section className="rounded-2xl border border-black/10 bg-panel p-5 shadow-soft">
-          <h2 className="text-base font-semibold">Settings access</h2>
+          <h2 className="text-base font-medium">Settings access</h2>
           <p className="mt-2 text-sm text-muted">
             This area is limited to admin accounts. Reach out if you need access.
           </p>
@@ -550,7 +550,7 @@ export default function AdminPage() {
 
       <section className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-2xl border border-black/5 bg-panel p-4 shadow-soft">
-          <h2 className="text-base font-semibold">Clients</h2>
+          <h2 className="text-base font-medium">Clients</h2>
           <p className="mt-1 text-sm text-muted">Add or archive client buckets.</p>
 
           <div className="mt-3 flex gap-2">
@@ -624,11 +624,11 @@ export default function AdminPage() {
         </div>
 
         <div className="rounded-2xl border border-black/5 bg-panel p-4 shadow-soft">
-          <h2 className="text-base font-semibold">Projects</h2>
+          <h2 className="text-base font-medium">Projects</h2>
           <p className="mt-1 text-sm text-muted">Each project belongs to one client.</p>
 
           <div className="mt-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">Add project</h3>
+            <h3 className="text-xs font-medium uppercase tracking-wide text-muted">Add project</h3>
             <p className="mt-1 text-xs text-muted">Create a new project under an existing client.</p>
           </div>
           <div className="mt-3 grid gap-2 sm:grid-cols-[1fr,1fr,auto]">
@@ -662,7 +662,7 @@ export default function AdminPage() {
           </div>
 
           <div className="mt-4 border-t border-black/10 pt-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">Manage existing projects</h3>
+            <h3 className="text-xs font-medium uppercase tracking-wide text-muted">Manage existing projects</h3>
             <p className="mt-1 text-xs text-muted">
               Update titles, rates, and budgets, or archive projects.
             </p>
@@ -763,7 +763,7 @@ export default function AdminPage() {
       </section>
 
       <section className="rounded-2xl border border-black/5 bg-panel p-4 shadow-soft">
-        <h2 className="text-base font-semibold">Rough Budgeting</h2>
+        <h2 className="text-base font-medium">Rough Budgeting</h2>
         <p className="mt-1 text-sm text-muted">Set hourly rate and project budgets for loose burn tracking.</p>
 
         <div className="mt-3 flex items-center gap-2">
@@ -790,7 +790,7 @@ export default function AdminPage() {
       </section>
 
       <section className="rounded-2xl border border-black/5 bg-panel p-4 shadow-soft">
-        <h2 className="text-base font-semibold">Merge projects (forward-only)</h2>
+        <h2 className="text-base font-medium">Merge projects (forward-only)</h2>
         <p className="mt-1 text-sm text-muted">
           Entries before effective date stay untouched. Entries on/after date move to target project.
         </p>
@@ -845,7 +845,7 @@ export default function AdminPage() {
       </section>
 
       <section className="rounded-2xl border border-black/5 bg-panel p-4 shadow-soft">
-        <h2 className="text-base font-semibold">Calendar Sources (Feed Links)</h2>
+        <h2 className="text-base font-medium">Calendar Sources (Feed Links)</h2>
         <p className="mt-1 text-sm text-muted">
           Add only work calendar iCal feed links. Sync uses these sources and ignores all others.
         </p>

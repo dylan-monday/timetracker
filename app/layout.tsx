@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
-import { Instrument_Serif, Inter } from "next/font/google";
+import { Instrument_Sans, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/auth-provider";
 import { AuthGate } from "@/components/auth-gate";
 
-const inter = Inter({
+const instrumentSans = Instrument_Sans({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-sans",
+  weight: ["400", "500", "600"],
   display: "swap"
 });
 
@@ -30,7 +31,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${instrumentSerif.variable}`}>
+      <body className={`${instrumentSans.variable} ${instrumentSerif.variable}`}>
         <AuthProvider>
           <AuthGate>{children}</AuthGate>
         </AuthProvider>

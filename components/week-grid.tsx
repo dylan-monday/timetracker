@@ -882,7 +882,7 @@ export function WeekGrid() {
                       }`}
                     >
                       <div className="mb-2">
-                        <p className={`text-xs font-semibold uppercase tracking-wide ${
+                        <p className={`text-xs font-medium uppercase tracking-wide ${
                           temporal === "today" ? "text-amber-700/70" : "text-muted"
                         }`}>
                           {day.label} {day.day}
@@ -1025,7 +1025,7 @@ export function WeekGrid() {
             className="fixed inset-x-0 bottom-0 z-30 rounded-t-3xl border border-black/10 bg-panel p-4 shadow-[0_-20px_50px_rgba(0,0,0,0.14)] sm:inset-x-auto sm:left-1/2 sm:mx-auto sm:mb-6 sm:w-full sm:max-w-xl sm:-translate-x-1/2 sm:rounded-3xl"
             onClick={(event) => event.stopPropagation()}
           >
-            <h2 className="text-base font-semibold">Add a project line</h2>
+            <h2 className="text-base font-medium">Add a project line</h2>
             <p className="mt-1 text-sm text-muted">Pick an existing project or create one on the fly.</p>
 
             <div className="mt-4 space-y-3">
@@ -1116,7 +1116,7 @@ export function WeekGrid() {
             className="fixed inset-x-0 bottom-0 z-30 rounded-t-3xl border border-black/10 bg-panel p-4 shadow-[0_-20px_50px_rgba(0,0,0,0.14)] sm:inset-x-auto sm:left-1/2 sm:mx-auto sm:mb-6 sm:w-full sm:max-w-xl sm:-translate-x-1/2 sm:rounded-3xl"
             onClick={(event) => event.stopPropagation()}
           >
-            <h2 className="text-base font-semibold">Create project for draft</h2>
+            <h2 className="text-base font-medium">Create project for draft</h2>
             <p className="mt-1 text-sm text-muted">
               Choose an existing client or type a new one, then add the project.
             </p>
@@ -1178,7 +1178,7 @@ export function WeekGrid() {
       ) : null}
 
       <div className="rounded-2xl border border-black/5 bg-panel p-4 shadow-soft">
-        <h2 className="text-base font-semibold">Calendar imports</h2>
+        <h2 className="text-base font-medium">Calendar imports</h2>
         <p className="mt-1 text-sm text-muted">
           Meetings from your calendar show up here as drafts. Approve them, move to a different project, or skip.
         </p>

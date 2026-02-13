@@ -57,9 +57,9 @@ html {
 }
 
 body {
-  font-family: var(--font-inter), "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-sans), "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   background: #f5f6f3;
-  color: #111318;
+  color: #1a1815;
 }
 
 

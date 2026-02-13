@@ -601,7 +601,7 @@ export default function TrendsPage() {
           {cards.map((card) => (
             <article key={card.label} className={`rounded-xl bg-white p-3 ${getSummaryAccentClass(card.category)}`}>
               <p className="text-xs uppercase tracking-wide text-muted">{card.label}</p>
-              <p className="font-numeric mt-1 text-2xl font-semibold tracking-tight">
+              <p className="font-numeric mt-1 text-2xl font-medium tracking-tight">
                 {loading ? "..." : card.value}
               </p>
               {/* Sparkline */}
@@ -628,7 +628,7 @@ export default function TrendsPage() {
 
       {/* Project breakdown */}
       <section className="rounded-2xl border border-black/5 bg-panel p-4 shadow-soft">
-        <h2 className="text-base font-semibold">Project breakdown</h2>
+        <h2 className="text-base font-medium">Project breakdown</h2>
         <p className="mt-1 text-sm text-muted">Where your hours went this {range}.</p>
         {valueRows.length ? (
           <div className="mt-3 grid gap-3 lg:grid-cols-2">
@@ -641,7 +641,7 @@ export default function TrendsPage() {
                     <p className="text-sm font-medium text-ink">{row.projectName}</p>
                     <p className="text-xs text-muted">{row.clientName}</p>
                   </div>
-                  <p className="font-numeric text-lg font-semibold text-ink">
+                  <p className="font-numeric text-lg font-medium text-ink">
                     {(row.minutes / 60).toFixed(1)}h
                   </p>
                 </div>
@@ -663,7 +663,7 @@ export default function TrendsPage() {
 
       {/* Budget check */}
       <section className="rounded-2xl border border-black/5 bg-panel p-4 shadow-soft">
-        <h2 className="text-base font-semibold">Budget check</h2>
+        <h2 className="text-base font-medium">Budget check</h2>
         <p className="mt-1 text-sm text-muted">How active projects are tracking against budget.</p>
         {budgetRows.length ? (
           <div className="mt-3 grid gap-3 lg:grid-cols-2">

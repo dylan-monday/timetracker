@@ -40,7 +40,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           </h1>
           <button
             type="button"
-            className="mt-7 w-full rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-45"
+            className="mt-7 w-full rounded-full bg-ink px-5 py-3 text-sm font-medium text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-45"
             onClick={() => {
               void signInWithGoogle();
             }}
@@ -67,7 +67,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-canvas px-4">
         <section className="w-full max-w-md rounded-2xl border border-danger/40 bg-panel p-6 shadow-soft">
-          <h1 className="text-lg font-semibold text-ink">Wrong door</h1>
+          <h1 className="text-lg font-medium text-ink">Wrong door</h1>
           <p className="mt-2 text-sm text-muted">
             This app is just for the Monday + Partners team. Try signing in with your @mondayandpartners.com account.
           </p>
