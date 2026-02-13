@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, RefreshCw, Sparkles, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Check, ChevronLeft, ChevronRight, Plus, RefreshCw, Sparkles, Trash2 } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 import { makeWeekDays } from "@/lib/mock-data";
 import { missingMinutes, missingState } from "@/lib/missing-time";
@@ -122,6 +122,8 @@ export function WeekGrid() {
   const [draftActionId, setDraftActionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pinnedProjectIds, setPinnedProjectIds] = useState<string[]>([]);
+  const [savedCell, setSavedCell] = useState<{ lineId: string; dayIndex: number } | null>(null);
+  const activeInputRef = useRef<HTMLInputElement>(null);
   const todayDayIndex = useMemo(() => {
     const day = new Date().getDay();
     return day === 0 ? 7 : day;
@@ -268,7 +270,16 @@ export function WeekGrid() {
   };
 
   const handleCellSubmit = async () => {
-    if (!activeCell || !user || !supabase) return;
+    // Explicitly blur the input first to dismiss mobile keyboard immediately
+    activeInputRef.current?.blur();
+
+    if (!activeCell || !user || !supabase) {
+      setActiveCell(null);
+      setEntryInput("");
+      return;
+    }
+
+    const cellToSave = { lineId: activeCell.lineId, dayIndex: activeCell.dayIndex };
 
     const rounded = parseAndRoundTimeInput(entryInput);
     if (rounded === null) {
@@ -285,16 +296,24 @@ export function WeekGrid() {
     }
 
     const isoDate = weekDays[activeCell.dayIndex - 1]?.isoDate;
-    if (!isoDate) return;
+    if (!isoDate) {
+      setActiveCell(null);
+      setEntryInput("");
+      return;
+    }
+
+    // Clear active state immediately for responsive feel
+    setActiveCell(null);
+    setEntryInput("");
 
     setLines((current) =>
       current.map((item) => {
-        if (item.id !== activeCell.lineId) return item;
+        if (item.id !== cellToSave.lineId) return item;
         return {
           ...item,
           cells: {
             ...item.cells,
-            [String(activeCell.dayIndex)]: rounded
+            [String(cellToSave.dayIndex)]: rounded
           }
         };
       })
@@ -311,13 +330,21 @@ export function WeekGrid() {
         isoDate,
         roundedMinutes: rounded
       });
+
+      // Show saved confirmation briefly
+      setSavedCell(cellToSave);
+      setTimeout(() => {
+        setSavedCell((current) =>
+          current?.lineId === cellToSave.lineId && current?.dayIndex === cellToSave.dayIndex
+            ? null
+            : current
+        );
+      }, 1200);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save entry.");
       await refreshWeekData();
     } finally {
       setSaving(false);
-      setEntryInput("");
-      setActiveCell(null);
     }
   };
 
@@ -730,7 +757,9 @@ export function WeekGrid() {
                     <td className="px-3 py-2">
                       {isActive ? (
                         <input
+                          ref={activeInputRef}
                           autoFocus
+                          enterKeyHint="done"
                           value={entryInput}
                           onChange={(event) => setEntryInput(event.target.value)}
                           onBlur={() => {
@@ -738,6 +767,7 @@ export function WeekGrid() {
                           }}
                           onKeyDown={(event) => {
                             if (event.key === "Enter") {
+                              event.preventDefault();
                               void handleCellSubmit();
                             }
                           }}
@@ -751,9 +781,20 @@ export function WeekGrid() {
                             setActiveCell({ lineId: line.id, dayIndex: activeMobileDayIndex });
                             setEntryInput(value ? String(value / 60) : "");
                           }}
-                          className="w-full rounded-lg border border-transparent px-2 py-1.5 text-left text-sm transition hover:border-black/10 hover:bg-canvas"
+                          className={`w-full rounded-lg border px-2 py-1.5 text-left text-sm transition ${
+                            savedCell?.lineId === line.id && savedCell?.dayIndex === activeMobileDayIndex
+                              ? "border-emerald-400 bg-emerald-50"
+                              : "border-transparent hover:border-black/10 hover:bg-canvas"
+                          }`}
                         >
-                          <span className="font-numeric">{minutesToDisplay(value)}</span>
+                          {savedCell?.lineId === line.id && savedCell?.dayIndex === activeMobileDayIndex ? (
+                            <span className="flex items-center gap-1.5 text-emerald-600">
+                              <Check className="h-3.5 w-3.5" />
+                              <span className="font-numeric">{minutesToDisplay(value)}</span>
+                            </span>
+                          ) : (
+                            <span className="font-numeric">{minutesToDisplay(value)}</span>
+                          )}
                         </button>
                       )}
                     </td>
@@ -849,7 +890,9 @@ export function WeekGrid() {
                       >
                         {isActive ? (
                           <input
+                            ref={activeInputRef}
                             autoFocus
+                            enterKeyHint="done"
                             value={entryInput}
                             onChange={(event) => setEntryInput(event.target.value)}
                             onBlur={() => {
@@ -857,6 +900,7 @@ export function WeekGrid() {
                             }}
                             onKeyDown={(event) => {
                               if (event.key === "Enter") {
+                                event.preventDefault();
                                 void handleCellSubmit();
                               }
                             }}
@@ -870,9 +914,20 @@ export function WeekGrid() {
                               setActiveCell({ lineId: line.id, dayIndex });
                               setEntryInput(value ? String(value / 60) : "");
                             }}
-                            className="w-full rounded-lg border border-transparent px-2 py-1.5 text-left text-sm transition hover:border-black/10 hover:bg-canvas"
+                            className={`w-full rounded-lg border px-2 py-1.5 text-left text-sm transition ${
+                              savedCell?.lineId === line.id && savedCell?.dayIndex === dayIndex
+                                ? "border-emerald-400 bg-emerald-50"
+                                : "border-transparent hover:border-black/10 hover:bg-canvas"
+                            }`}
                           >
-                            <span className="font-numeric">{minutesToDisplay(value)}</span>
+                            {savedCell?.lineId === line.id && savedCell?.dayIndex === dayIndex ? (
+                              <span className="flex items-center gap-1.5 text-emerald-600">
+                                <Check className="h-3.5 w-3.5" />
+                                <span className="font-numeric">{minutesToDisplay(value)}</span>
+                              </span>
+                            ) : (
+                              <span className="font-numeric">{minutesToDisplay(value)}</span>
+                            )}
                           </button>
                         )}
                       </td>
