@@ -620,11 +620,14 @@ export default function TrendsPage() {
           ))}
         </div>
 
-        {/* Narrative */}
-        {narrative && (
-          <p className="mt-4 text-sm leading-relaxed text-ink/70">{narrative}</p>
-        )}
-      </section>
+        </section>
+
+      {/* Narrative */}
+      {narrative && (
+        <section className="rounded-2xl border border-black/5 bg-panel p-5 shadow-soft sm:p-6">
+          <p className="text-base leading-relaxed text-ink sm:text-lg">{narrative}</p>
+        </section>
+      )}
 
       {/* Project breakdown */}
       <section className="rounded-2xl border border-black/5 bg-panel p-4 shadow-soft">
