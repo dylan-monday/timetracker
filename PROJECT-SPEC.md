@@ -73,7 +73,11 @@ Current UX direction:
 - Summary cards: Total, Client delivery, Internal investment, Personal.
 - **Sparklines**: 8-period trend charts under each summary card.
 - **Period comparisons**: Neutral indicators (↑/↓/—) showing change vs previous period.
-- **Weekly narrative**: Prominent editorial summary of where time went (own card, larger font).
+- **Editorial narrative card**: Dark warm background (#2d2a26) with structured content:
+  - Line 1 (headline, 20px): Dominant category statement
+  - Line 2 (detail, 15px): Top 2 clients/projects with hours
+  - Line 3 (personal, 15px, rose accent): Personal time with dollar value
+  - Line 4 (metadata, 13px): Internal work and total hours
 - Project breakdown with category color coding.
 - Project value estimates:
   - value = hours * effective rate
