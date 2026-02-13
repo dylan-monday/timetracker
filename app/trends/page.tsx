@@ -35,6 +35,36 @@ function startForRange(range: RangeKey): string {
   return new Date(now.getFullYear(), 0, 1).toISOString().slice(0, 10);
 }
 
+function formatDateRange(range: RangeKey): string {
+  const now = new Date();
+  const startDate = new Date(startForRange(range));
+  const endDate = new Date(now);
+
+  const formatShort = (d: Date) => {
+    const month = d.toLocaleDateString("en-US", { month: "short" });
+    return `${month} ${d.getDate()}`;
+  };
+
+  if (range === "week") {
+    // Show Mon-Fri or Mon-Sun range
+    const endOfWeek = new Date(startDate);
+    endOfWeek.setDate(endOfWeek.getDate() + 6);
+    const effectiveEnd = endOfWeek < now ? endOfWeek : now;
+    return `${formatShort(startDate)}–${formatShort(effectiveEnd)}`;
+  }
+
+  if (range === "month") {
+    return now.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  }
+
+  if (range === "quarter") {
+    const q = Math.floor(now.getMonth() / 3) + 1;
+    return `Q${q} ${now.getFullYear()}`;
+  }
+
+  return now.getFullYear().toString();
+}
+
 function isMissingColumnError(error: { code?: string; message?: string } | null): boolean {
   if (!error) return false;
   return error.code === "42703" || (error.message ?? "").toLowerCase().includes("does not exist");
@@ -46,7 +76,8 @@ export default function TrendsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hourlyRateCents, setHourlyRateCents] = useState(0);
-  const [totals, setTotals] = useState({ total: 0, client: 0, internal: 0, exercise: 0 });
+  const [totals, setTotals] = useState({ total: 0, client: 0, internal: 0, personal: 0 });
+  const [topClients, setTopClients] = useState<Array<{ name: string; minutes: number }>>([]);
   const [projectBudgetRows, setProjectBudgetRows] = useState<
     Array<{
       projectId: string;
@@ -110,7 +141,7 @@ export default function TrendsPage() {
 
         if (queryError) throw queryError;
 
-        const next = { total: 0, client: 0, internal: 0, exercise: 0 };
+        const next = { total: 0, client: 0, internal: 0, personal: 0 };
         const perProject = new Map<
           string,
           {
@@ -134,6 +165,7 @@ export default function TrendsPage() {
             clientHourlyRateCents: number | null;
           }
         >();
+        const clientMinutes = new Map<string, number>();
 
         for (const row of data ?? []) {
           const minutes = row.rounded_minutes ?? 0;
@@ -147,18 +179,24 @@ export default function TrendsPage() {
               }
             | null;
           const clientKind = project?.clients?.kind;
-          const clientName = (project?.clients?.name ?? "").toLowerCase();
+          const clientName = project?.clients?.name ?? "";
+          const clientNameLower = clientName.toLowerCase();
 
           next.total += minutes;
 
-          if (clientName.includes("exercise")) {
-            next.exercise += minutes;
+          // Track personal time (Personal client and all its projects)
+          if (clientNameLower === "personal") {
+            next.personal += minutes;
           }
 
           if (clientKind === "internal") {
             next.internal += minutes;
           } else {
             next.client += minutes;
+            // Track per-client totals for narrative (only external clients)
+            if (clientName) {
+              clientMinutes.set(clientName, (clientMinutes.get(clientName) ?? 0) + minutes);
+            }
           }
 
           if (project?.id && project?.budget_cents && project.budget_cents > 0) {
@@ -199,6 +237,13 @@ export default function TrendsPage() {
               .filter((row) => row.minutes > 0)
               .sort((a, b) => b.minutes - a.minutes)
           );
+          // Top clients by hours for narrative
+          setTopClients(
+            Array.from(clientMinutes.entries())
+              .map(([name, mins]) => ({ name, minutes: mins }))
+              .sort((a, b) => b.minutes - a.minutes)
+              .slice(0, 3)
+          );
         }
       } catch (err) {
         if (mounted) {
@@ -218,18 +263,55 @@ export default function TrendsPage() {
     };
   }, [range, supabase]);
 
+  const dateRangeLabel = useMemo(() => formatDateRange(range), [range]);
+
   const cards = useMemo(() => {
     const toHours = (minutes: number) => `${(minutes / 60).toFixed(1)}h`;
-    const pct = (minutes: number) =>
-      totals.total > 0 ? `${Math.round((minutes / totals.total) * 100)}%` : "0%";
 
     return [
-      { label: "Total", value: toHours(totals.total), detail: "Everything you captured" },
-      { label: "Client delivery", value: toHours(totals.client), detail: pct(totals.client) },
-      { label: "Internal investment", value: toHours(totals.internal), detail: pct(totals.internal) },
-      { label: "Exercise", value: toHours(totals.exercise), detail: pct(totals.exercise) }
+      { label: "Total", value: toHours(totals.total), detail: dateRangeLabel },
+      { label: "Client delivery", value: toHours(totals.client) },
+      { label: "Internal investment", value: toHours(totals.internal) },
+      { label: "Personal", value: toHours(totals.personal) }
     ];
-  }, [totals]);
+  }, [totals, dateRangeLabel]);
+
+  // Weekly narrative
+  const narrative = useMemo(() => {
+    if (loading || totals.total === 0) return null;
+
+    const toHours = (minutes: number) => `${(minutes / 60).toFixed(1)}h`;
+    const parts: string[] = [];
+
+    // Main focus
+    if (totals.client > totals.internal && totals.client > totals.personal) {
+      const clientNames = topClients.slice(0, 2).map((c) => c.name);
+      if (clientNames.length > 0) {
+        parts.push(`Most of your ${range} went to client delivery — ${clientNames.join(" and ")} took the biggest share.`);
+      } else {
+        parts.push(`Most of your ${range} went to client delivery.`);
+      }
+    } else if (totals.internal > totals.client) {
+      parts.push(`You focused on internal investment this ${range}.`);
+    }
+
+    // Internal + personal summary
+    const secondaryParts: string[] = [];
+    if (totals.internal > 0) {
+      secondaryParts.push(`${toHours(totals.internal)} of internal work`);
+    }
+    if (totals.personal > 0) {
+      secondaryParts.push(`${toHours(totals.personal)} for yourself`);
+    }
+
+    if (secondaryParts.length > 0) {
+      parts.push(`You logged ${secondaryParts.join(" and ")}.`);
+    } else if (totals.personal === 0 && totals.total > 0) {
+      parts.push("No personal time captured this " + range + ".");
+    }
+
+    return parts.join(" ");
+  }, [loading, totals, topClients, range]);
 
   const budgetRows = useMemo(() => {
     return projectBudgetRows.map((row) => {
@@ -297,45 +379,52 @@ export default function TrendsPage() {
               <p className="font-numeric mt-1 text-2xl font-semibold tracking-tight">
                 {loading ? "..." : card.value}
               </p>
-              <p className="text-xs text-muted">{card.detail}</p>
+              {"detail" in card && card.detail && (
+                <p className="text-xs text-muted">{card.detail}</p>
+              )}
             </article>
           ))}
         </div>
+
+        {narrative && (
+          <p className="mt-4 text-sm text-ink/70">{narrative}</p>
+        )}
       </section>
 
       <section className="rounded-2xl border border-black/5 bg-panel p-4 shadow-soft">
-        <h2 className="text-base font-semibold">Project value pulse</h2>
-        <p className="mt-1 text-sm text-muted">
-          A personal signal: hours by project and rough value at {hourlyRateCents ? fmtMoney(hourlyRateCents) : "$0"}/hr.
-        </p>
+        <h2 className="text-base font-semibold">Project breakdown</h2>
+        <p className="mt-1 text-sm text-muted">Where your hours went this {range}.</p>
         {valueRows.length ? (
           <div className="mt-3 grid gap-3 lg:grid-cols-2">
             {valueRows.map((row) => (
               <article key={row.projectId} className="rounded-xl bg-white p-3">
-                <p className="text-sm font-medium text-ink">{row.projectName}</p>
-                <p className="text-xs text-muted">{row.clientName}</p>
-                <div className="mt-2 flex items-center justify-between text-xs text-muted">
-                  <span>{(row.minutes / 60).toFixed(1)}h logged</span>
-                  <span>Rate {fmtMoney(row.effectiveRateCents)}/hr</span>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-ink">{row.projectName}</p>
+                    <p className="text-xs text-muted">{row.clientName}</p>
+                  </div>
+                  <p className="font-numeric text-lg font-semibold text-ink">
+                    {(row.minutes / 60).toFixed(1)}h
+                  </p>
                 </div>
-                <div className="mt-1 flex justify-end text-xs text-muted">
-                  <span>Value {fmtMoney(row.valueCents)}</span>
-                </div>
+                {row.valueCents > 0 && (
+                  <p className="mt-2 text-xs text-muted/70">
+                    ~{fmtMoney(row.valueCents)} value
+                  </p>
+                )}
               </article>
             ))}
           </div>
         ) : (
           <div className="mt-3 rounded-xl border border-dashed border-black/15 p-3 text-sm text-muted">
-            Set your hourly rate in Settings to see project value estimates.
+            No time logged this {range} yet.
           </div>
         )}
       </section>
 
       <section className="rounded-2xl border border-black/5 bg-panel p-4 shadow-soft">
-        <h2 className="text-base font-semibold">Budget pulse (loose tracking)</h2>
-        <p className="mt-1 text-sm text-muted">
-          Burn = approved rounded hours x hourly rate ({hourlyRateCents ? fmtMoney(hourlyRateCents) : "$0"}/hr).
-        </p>
+        <h2 className="text-base font-semibold">Budget check</h2>
+        <p className="mt-1 text-sm text-muted">How active projects are tracking against budget.</p>
         {budgetRows.length ? (
           <div className="mt-3 grid gap-3 lg:grid-cols-2">
             {budgetRows.map((row) => (
