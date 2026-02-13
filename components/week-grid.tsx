@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, Plus, RefreshCw, Sparkles, Trash2 } from "lucide-react";
+import { getRandomMessage, type FooterMessage } from "@/lib/footer-messages";
 import { useAuth } from "@/components/auth-provider";
 import { makeWeekDays } from "@/lib/mock-data";
 import { missingMinutes, missingState } from "@/lib/missing-time";
@@ -22,40 +23,6 @@ const BUSINESS_DAY_INDEXES = [1, 2, 3, 4, 5];
 const ALL_DAY_INDEXES = [1, 2, 3, 4, 5, 6, 7];
 const WEEK_LINE_STORAGE_PREFIX = "mp-time-week-lines";
 const QUICK_TAG_STORAGE_KEY = "mp-time-quick-tags";
-const REFLECTION_QUOTES = [
-  {
-    text: "It is not that we have a short time to live, but that we waste a lot of it.",
-    author: "Seneca"
-  },
-  {
-    text: "You have power over your mind - not outside events. Realize this, and you will find strength.",
-    author: "Marcus Aurelius"
-  },
-  {
-    text: "The impediment to action advances action. What stands in the way becomes the way.",
-    author: "Marcus Aurelius"
-  },
-  {
-    text: "No man is free who is not master of himself.",
-    author: "Epictetus"
-  },
-  {
-    text: "Waste no more time arguing what a good man should be. Be one.",
-    author: "Marcus Aurelius"
-  },
-  {
-    text: "How we spend our days is, of course, how we spend our lives.",
-    author: "Annie Dillard"
-  },
-  {
-    text: "Things do not happen. Things are made to happen.",
-    author: "John F. Kennedy"
-  },
-  {
-    text: "I am not what happened to me, I am what I choose to become.",
-    author: "Carl Jung"
-  }
-];
 
 function stateClass(state: "ok" | "attention" | "gap"): string {
   if (state === "ok") return "border border-accent/35 bg-accent/25 text-ink";
@@ -172,10 +139,7 @@ export function WeekGrid() {
   }, []);
   const [mobileDayIndex, setMobileDayIndex] = useState(todayDayIndex);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
-  const reflectionQuote = useMemo(
-    () => REFLECTION_QUOTES[Math.floor(Math.random() * REFLECTION_QUOTES.length)],
-    []
-  );
+  const footerMessage = useMemo<FooterMessage>(() => getRandomMessage(), []);
 
   const visibleDayIndexes = showWeekends ? ALL_DAY_INDEXES : BUSINESS_DAY_INDEXES;
   const activeMobileDayIndex = visibleDayIndexes.includes(mobileDayIndex)
@@ -1243,10 +1207,12 @@ export function WeekGrid() {
       </div>
 
       <div className="py-2 text-center">
-        <p className="font-display text-xl leading-tight text-[#8f959b]/45 italic sm:text-2xl">
-          “{reflectionQuote.text}”
+        <p className="font-display text-xl leading-tight text-[#8f959b]/50 italic sm:text-2xl">
+          {footerMessage.author ? `"${footerMessage.text}"` : footerMessage.text}
         </p>
-        <p className="font-display mt-1 text-sm text-[#8f959b]/45 sm:text-base">- {reflectionQuote.author}</p>
+        {footerMessage.author && (
+          <p className="font-display mt-1 text-sm text-[#8f959b]/45 sm:text-base">— {footerMessage.author}</p>
+        )}
       </div>
     </section>
   );
