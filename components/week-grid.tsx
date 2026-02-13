@@ -68,6 +68,48 @@ function isWeekendIsoDate(isoDate: string): boolean {
   return day === 0 || day === 6;
 }
 
+type TemporalState = "past" | "today" | "future";
+
+function getTemporalState(isoDate: string): TemporalState {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const cellDate = new Date(`${isoDate}T00:00:00`);
+  cellDate.setHours(0, 0, 0, 0);
+
+  if (cellDate.getTime() < today.getTime()) return "past";
+  if (cellDate.getTime() > today.getTime()) return "future";
+  return "today";
+}
+
+function temporalColumnClass(temporal: TemporalState, isWeekend: boolean): string {
+  // Base weekend styling takes precedence for background
+  if (isWeekend) {
+    if (temporal === "today") return "rounded-xl bg-amber-50/60";
+    if (temporal === "past") return "rounded-xl bg-black/[0.04]";
+    return "rounded-xl bg-black/[0.02]";
+  }
+
+  // Non-weekend temporal styling
+  // Today: warmer, more present
+  if (temporal === "today") return "bg-amber-50/40";
+  // Past: slightly muted/settled
+  if (temporal === "past") return "bg-black/[0.015]";
+  // Future: lighter/open
+  return "";
+}
+
+function temporalCellClass(temporal: TemporalState, isWeekend: boolean): string {
+  if (isWeekend) {
+    if (temporal === "today") return "bg-amber-50/40";
+    if (temporal === "past") return "bg-black/[0.03]";
+    return "bg-black/[0.015]";
+  }
+
+  if (temporal === "today") return "bg-amber-50/30";
+  if (temporal === "past") return "bg-black/[0.01]";
+  return "";
+}
+
 function mobileDayLabel(dayIndex: number, todayIndex: number, fallback: string): string {
   const diff = dayIndex - todayIndex;
   if (diff === 0) return "Today";
@@ -719,9 +761,9 @@ export function WeekGrid() {
             </div>
             <div className={`mt-2 font-numeric rounded-2xl px-3 py-2 text-[11px] leading-tight ${stateClass(mobileStatus)}`}>
               {mobileStatus === "ok" ? (
-                <span className="font-medium">Full Day</span>
+                <span className="font-medium">Good day</span>
               ) : (
-                <span className="font-semibold">{Math.round(missingMinutes(mobileMinutes) / 60)}h open</span>
+                <span className="font-semibold">{Math.round(missingMinutes(mobileMinutes) / 60)}h to go</span>
               )}
             </div>
           </div>
@@ -806,7 +848,7 @@ export function WeekGrid() {
 
           {!lines.length && !loading ? (
             <div className="rounded-xl border border-dashed border-black/15 p-6 text-center text-sm text-muted">
-              No lines yet. Add your first client/project line to start tracking.
+              Clean slate. Add a project line to start capturing your day.
             </div>
           ) : null}
         </div>
@@ -821,17 +863,21 @@ export function WeekGrid() {
                   const minutes = totalsByDay[dayIndex] ?? 0;
                   const status = missingState(minutes);
                   const isWeekend = isWeekendIsoDate(day.isoDate);
+                  const temporal = getTemporalState(day.isoDate);
 
                   return (
                     <th
                       key={day.isoDate}
-                      className={`px-3 py-2 ${isWeekend ? "rounded-xl bg-black/[0.03]" : ""} ${
+                      className={`px-3 py-2 ${temporalColumnClass(temporal, isWeekend)} ${
                         dayPosition > 0 ? "border-l border-black/10" : ""
                       }`}
                     >
                       <div className="mb-2">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+                        <p className={`text-xs font-semibold uppercase tracking-wide ${
+                          temporal === "today" ? "text-amber-700/70" : "text-muted"
+                        }`}>
                           {day.label} {day.day}
+                          {temporal === "today" && <span className="ml-1.5 text-[10px] font-medium normal-case tracking-normal">today</span>}
                         </p>
                         <p className="mt-0.5 font-numeric text-[13px] text-muted">
                           {minutesToDisplay(minutes)}
@@ -841,9 +887,9 @@ export function WeekGrid() {
                         className={`font-numeric rounded-2xl px-3 py-2 text-[11px] leading-tight ${stateClass(status)}`}
                       >
                         {status === "ok" ? (
-                          <span className="font-medium">Full Day</span>
+                          <span className="font-medium">Good day</span>
                         ) : (
-                          <span className="font-semibold">{Math.round(missingMinutes(minutes) / 60)}h open</span>
+                          <span className="font-semibold">{Math.round(missingMinutes(minutes) / 60)}h to go</span>
                         )}
                       </div>
                     </th>
@@ -877,6 +923,7 @@ export function WeekGrid() {
                   {visibleDayIndexes.map((dayIndex, dayPosition) => {
                     const day = weekDays[dayIndex - 1];
                     const isWeekend = isWeekendIsoDate(day.isoDate);
+                    const temporal = getTemporalState(day.isoDate);
                     const isActive =
                       activeCell?.lineId === line.id && activeCell?.dayIndex === dayIndex;
                     const value = line.cells[String(dayIndex)] ?? 0;
@@ -884,7 +931,7 @@ export function WeekGrid() {
                     return (
                       <td
                         key={`${line.id}-${dayIndex}`}
-                        className={`px-3 py-2 ${isWeekend ? "bg-black/[0.03]" : ""} ${
+                        className={`px-3 py-2 ${temporalCellClass(temporal, isWeekend)} ${
                           dayPosition > 0 ? "border-l border-black/10" : ""
                         }`}
                       >
@@ -940,7 +987,7 @@ export function WeekGrid() {
 
           {!lines.length && !loading ? (
             <div className="rounded-xl border border-dashed border-black/15 p-6 text-center text-sm text-muted">
-              No lines yet. Add your first client/project line to start tracking.
+              Clean slate. Add a project line to start capturing your day.
             </div>
           ) : null}
         </div>
@@ -973,8 +1020,8 @@ export function WeekGrid() {
             className="fixed inset-x-0 bottom-0 z-30 rounded-t-3xl border border-black/10 bg-panel p-4 shadow-[0_-20px_50px_rgba(0,0,0,0.14)] sm:inset-x-auto sm:left-1/2 sm:mx-auto sm:mb-6 sm:w-full sm:max-w-xl sm:-translate-x-1/2 sm:rounded-3xl"
             onClick={(event) => event.stopPropagation()}
           >
-            <h2 className="text-base font-semibold">Quick add line</h2>
-            <p className="mt-1 text-sm text-muted">Client and project can be selected or created in place.</p>
+            <h2 className="text-base font-semibold">Add a project line</h2>
+            <p className="mt-1 text-sm text-muted">Pick an existing project or create one on the fly.</p>
 
             <div className="mt-4 space-y-3">
               <label className="block">
@@ -1126,9 +1173,9 @@ export function WeekGrid() {
       ) : null}
 
       <div className="rounded-2xl border border-black/5 bg-panel p-4 shadow-soft">
-        <h2 className="text-base font-semibold">Calendar drafts</h2>
+        <h2 className="text-base font-semibold">Calendar imports</h2>
         <p className="mt-1 text-sm text-muted">
-          Meeting imports create immediate drafts in this week. Approve, reassign, or reject in-line.
+          Meetings from your calendar show up here as drafts. Approve them, move to a different project, or skip.
         </p>
 
         {draftEntries.length ? (
@@ -1190,7 +1237,7 @@ export function WeekGrid() {
           </ul>
         ) : (
           <div className="mt-3 rounded-xl border border-dashed border-black/15 p-3 text-sm text-muted">
-            No calendar drafts pending approval this week.
+            No calendar imports to review this week.
           </div>
         )}
       </div>

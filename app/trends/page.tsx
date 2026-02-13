@@ -224,9 +224,9 @@ export default function TrendsPage() {
       totals.total > 0 ? `${Math.round((minutes / totals.total) * 100)}%` : "0%";
 
     return [
-      { label: "Total", value: toHours(totals.total), detail: "All approved time" },
-      { label: "Client work", value: toHours(totals.client), detail: pct(totals.client) },
-      { label: "Internal", value: toHours(totals.internal), detail: pct(totals.internal) },
+      { label: "Total", value: toHours(totals.total), detail: "Everything you captured" },
+      { label: "Client delivery", value: toHours(totals.client), detail: pct(totals.client) },
+      { label: "Internal investment", value: toHours(totals.internal), detail: pct(totals.internal) },
       { label: "Exercise", value: toHours(totals.exercise), detail: pct(totals.exercise) }
     ];
   }, [totals]);
@@ -326,7 +326,7 @@ export default function TrendsPage() {
           </div>
         ) : (
           <div className="mt-3 rounded-xl border border-dashed border-black/15 p-3 text-sm text-muted">
-            Add hourly rate in Admin Mode to unlock project value signal.
+            Set your hourly rate in Settings to see project value estimates.
           </div>
         )}
       </section>
@@ -360,7 +360,7 @@ export default function TrendsPage() {
           </div>
         ) : (
           <div className="mt-3 rounded-xl border border-dashed border-black/15 p-3 text-sm text-muted">
-            Add hourly rate and project budgets in Admin Mode to see budget pulse.
+            Set your hourly rate and project budgets in Settings to see budget tracking.
           </div>
         )}
       </section>

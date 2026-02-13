@@ -533,12 +533,12 @@ export default function AdminPage() {
   };
 
   return (
-    <AppShell title="Admin Mode">
+    <AppShell title="Settings">
       {!isAdmin && !loading ? (
         <section className="rounded-2xl border border-black/10 bg-panel p-5 shadow-soft">
-          <h2 className="text-base font-semibold">Admin access required</h2>
+          <h2 className="text-base font-semibold">Settings access</h2>
           <p className="mt-2 text-sm text-muted">
-            Your current account does not have admin role permissions.
+            This area is limited to admin accounts. Reach out if you need access.
           </p>
         </section>
       ) : null}

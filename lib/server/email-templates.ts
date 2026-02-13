@@ -76,28 +76,29 @@ function baseLayout(args: LayoutArgs): string {
 `;
 }
 
-export function buildDailyReminderEmail(params: { appUrl: string }): string {
+export function buildDailyReminderEmail(params: { appUrl: string; dayName?: string }): string {
+  const day = params.dayName ?? new Date().toLocaleDateString("en-US", { weekday: "long" });
   const contentHtml = `
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:separate;border-spacing:0 10px;">
       <tr>
         <td style="background:#ffffff;border:1px solid #dde3d5;border-radius:12px;padding:14px 16px;font-size:14px;line-height:1.55;color:#2b3037;">
-          It is 4pm. Capture today while it is fresh so your weekly trends stay honest.
+          Take a minute to capture where your ${day} went while it's still fresh.
         </td>
       </tr>
       <tr>
         <td style="font-size:13px;color:#6d737f;padding:2px 4px;">
-          Fast entry tips: <strong>1.5</strong>, <strong>1h 30m</strong>, or <strong>90m</strong>.
+          Quick formats: <strong>1.5</strong>, <strong>1h 30m</strong>, or <strong>90m</strong>
         </td>
       </tr>
     </table>
   `;
 
   return baseLayout({
-    preheader: "4pm nudge: log your day in under a minute.",
-    eyebrow: "Daily Reminder",
-    title: "Do your time",
-    subtitle: "Quick pass now, cleaner week later.",
-    ctaLabel: "Open Week View",
+    preheader: `Quick snapshot of your ${day}`,
+    eyebrow: "End of Day",
+    title: `How was your ${day}?`,
+    subtitle: "A minute now saves you guesswork later.",
+    ctaLabel: "Capture your day",
     ctaHref: `${params.appUrl}/week`,
     contentHtml
   });
@@ -129,7 +130,7 @@ export function buildWeeklyRecapEmail(params: {
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 -6px;border-collapse:separate;">
       <tr>
         ${statCell("Total", params.totalHours)}
-        ${statCell("Client", params.clientHours)}
+        ${statCell("Client delivery", params.clientHours)}
       </tr>
       <tr>
         ${statCell("Internal", params.internalHours)}
@@ -139,11 +140,11 @@ export function buildWeeklyRecapEmail(params: {
   `;
 
   return baseLayout({
-    preheader: `Weekly recap: ${params.totalHours} total logged`,
-    eyebrow: "Weekly Recap",
-    title: "Your week, at a glance",
-    subtitle: "A clean read on where creative hours went.",
-    ctaLabel: "View Trends",
+    preheader: `Your week: ${params.totalHours} captured`,
+    eyebrow: "Week in Review",
+    title: "Your week, wrapped",
+    subtitle: "Here's where your hours went.",
+    ctaLabel: "See the details",
     ctaHref: `${params.appUrl}/trends`,
     contentHtml
   });

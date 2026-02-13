@@ -3,7 +3,6 @@
 import { useMemo } from "react";
 import Image from "next/image";
 import { AmbientMotion } from "@/components/ambient-motion";
-import { BUILD_TAG } from "@/lib/build-tag";
 import { useAuth } from "@/components/auth-provider";
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
@@ -51,7 +50,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           </button>
 
           <div className="mt-4 flex items-center justify-center text-center text-xs text-muted">
-            <span>Only @mondayandpartners.com accounts are allowed.</span>
+            <span>Sign in with your Monday + Partners Google account.</span>
           </div>
 
           {!envReady ? (
@@ -60,9 +59,6 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             </p>
           ) : null}
         </section>
-        <div className="pointer-events-none fixed bottom-2 left-2 z-[60] rounded bg-black/70 px-2 py-1 font-mono text-[10px] text-white/90">
-          {BUILD_TAG}
-        </div>
       </main>
     );
   }
@@ -71,9 +67,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-canvas px-4">
         <section className="w-full max-w-md rounded-2xl border border-danger/40 bg-panel p-6 shadow-soft">
-          <h1 className="text-lg font-semibold text-ink">Access restricted</h1>
+          <h1 className="text-lg font-semibold text-ink">Wrong door</h1>
           <p className="mt-2 text-sm text-muted">
-            This app is currently limited to mondayandpartners.com email addresses.
+            This app is just for the Monday + Partners team. Try signing in with your @mondayandpartners.com account.
           </p>
         </section>
       </main>

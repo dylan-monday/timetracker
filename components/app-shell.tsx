@@ -18,7 +18,7 @@ interface AppShellProps {
 const navItems = [
   { href: "/week", label: "Week", icon: CalendarRange },
   { href: "/trends", label: "Trends", icon: ChartColumn },
-  { href: "/admin", label: "Admin", icon: Shield }
+  { href: "/admin", label: "Settings", icon: Shield }
 ];
 
 export function AppShell({ title, subtitle, children }: AppShellProps) {

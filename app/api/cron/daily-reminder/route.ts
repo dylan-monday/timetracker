@@ -24,11 +24,13 @@ export async function POST(request: Request) {
 
     let sent = 0;
 
+    const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
+
     for (const profile of profiles ?? []) {
       await sendEmail({
         to: profile.email,
-        subject: "Do your time",
-        html: buildDailyReminderEmail({ appUrl })
+        subject: `Quick snapshot of your ${dayName}`,
+        html: buildDailyReminderEmail({ appUrl, dayName })
       });
 
       await supabase.from("email_jobs").upsert(

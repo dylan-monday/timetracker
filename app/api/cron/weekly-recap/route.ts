@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     for (const summary of summaries) {
       await sendEmail({
         to: summary.email,
-        subject: "Weekly time recap",
+        subject: "Your week, wrapped",
         html: buildWeeklyRecapEmail({
           appUrl: process.env.APP_URL ?? "https://time.mondayandpartners.com",
           weekEndingLabel: weekLabel(),

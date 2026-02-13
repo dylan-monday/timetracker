@@ -166,11 +166,42 @@ The visual effect remains imperceptible or barely noticeable.
 4. Are the reference sites (Cursor, Raycast) using a different technique entirely?
 5. Does the light canvas background (#f5f6f3) wash out everything?
 
-### Next Steps to Consider
+---
 
-- Study Cursor.com and Raycast implementations in browser devtools
-- Try reduced blur (10-20px) with more defined color regions
-- Consider darker/richer canvas background to increase contrast
-- Try animated SVG or canvas-based approach
-- Test on multiple devices - maybe it's visible on some screens but not others
+## 10) Final Implementation (2026-02-13)
+
+### Solution: Time-Based Gradient Background
+
+Completely replaced the blur/orb approach with a new system using CSS radial-gradients that shift based on time of day.
+
+### Technical Approach
+
+- **Single full-screen div** with multiple layered CSS `radial-gradient` (NO `filter: blur()`)
+- **Gradient positions animated** via `requestAnimationFrame` for smooth drift
+- **Time-based color palettes** that blend over 30-minute transitions
+- **No blur filter** on moving elements (this was the key insight - blur killed all prior visibility)
+
+### Time Periods and Colors
+
+| Period | Hours | Palette |
+|--------|-------|---------|
+| Morning | 6am-11am | Soft blues, light teals, clean whites |
+| Midday | 11am-2pm | Warm whites, subtle golds, light sage |
+| Afternoon | 2pm-5pm | Soft amber, warm gray, muted gold |
+| Evening | 5pm-9pm | Warm peach, dusty rose, warm sand |
+| Night | 9pm-6am | Blue-gray, slate, muted indigo |
+
+### Key Features
+
+1. **Position drift**: Three gradient positions drift in figure-8/lissajous patterns with 30-60 second cycles
+2. **Color blending**: 30-minute smooth transitions between time periods
+3. **Debug mode**: Add `?debug-bg=1` to URL to see full 24-hour cycle in 60 seconds
+4. **Reduced motion**: Respects `prefers-reduced-motion` - disables drift but keeps time-based colors
+
+### Why This Works
+
+- CSS gradients on a single element are **visible without blur**
+- Opacity levels (0.35-0.45) are sufficient against the canvas background
+- Position drift is perceivable because edges have definition (not blurred away)
+- Time-based colors add meaning and temporal awareness without being gimmicky
 

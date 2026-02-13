@@ -37,6 +37,14 @@ Current UX direction:
   - iOS keyboard dismisses immediately on Done tap
   - Visual save confirmation (green checkmark) appears briefly after successful entry
   - Works identically on mobile and desktop
+- Today column visual distinction:
+  - Today's column has a subtle warm amber tint
+  - Past days appear slightly muted
+  - Future days appear lighter/more open
+- Time-based ambient background:
+  - Background colors shift based on local time of day (morning/midday/afternoon/evening/night)
+  - Gradients slowly drift position over 30-60 second cycles
+  - Debug mode available via `?debug-bg=1` query param
 
 ### Calendar Drafts Inbox
 - Calendar imports create `draft` entries, not auto-approved final entries.
@@ -176,7 +184,6 @@ Notes:
 
 ## 8) Current Known Issues / Watchlist
 
-- **Ambient background motion needs rethinking.** Multiple approaches tried (CSS animations, JS requestAnimationFrame, bouncing orbs, atmospheric drift with scale breathing). All versions are too subtle to perceive despite technically rendering and animating. The blur + gradient + light background combination may be fundamentally incompatible with visible motion. See `BACKGROUND-ANIMATION-SPEC.md` section 9 for full implementation log. Next session should explore alternative techniques (less blur, different approach, study reference implementations).
 - Calendar sync quality depends on clean feed sources and mapping workflow; noisy shared calendars can still require filtering decisions.
 
 ---
