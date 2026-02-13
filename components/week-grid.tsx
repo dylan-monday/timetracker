@@ -89,6 +89,38 @@ function mobileDayLabel(dayIndex: number, todayIndex: number, fallback: string):
   return fallback;
 }
 
+type CategoryType = "client" | "internal" | "personal";
+
+function getCategoryType(clientName: string, clientKind: string | undefined): CategoryType {
+  // Personal client gets personal color
+  if (clientName.toLowerCase() === "personal") return "personal";
+  // External clients get client color, internal gets internal color
+  if (clientKind === "external") return "client";
+  return "internal";
+}
+
+function getCategoryBorderClass(category: CategoryType): string {
+  switch (category) {
+    case "client":
+      return "border-l-[3px] border-l-[var(--color-client)]";
+    case "internal":
+      return "border-l-[3px] border-l-[var(--color-internal)]";
+    case "personal":
+      return "border-l-[3px] border-l-[var(--color-personal)]";
+  }
+}
+
+function getCategoryAnimationClass(category: CategoryType): string {
+  switch (category) {
+    case "client":
+      return "animate-row-fade-in-client";
+    case "internal":
+      return "animate-row-fade-in-internal";
+    case "personal":
+      return "animate-row-fade-in-personal";
+  }
+}
+
 function formatDraftTimeRange(entry: DraftEntry): string | null {
   if (!entry.startsAt || !entry.endsAt) return null;
 
@@ -136,6 +168,7 @@ export function WeekGrid() {
   const [error, setError] = useState<string | null>(null);
   const [pinnedProjectIds, setPinnedProjectIds] = useState<string[]>([]);
   const [savedCell, setSavedCell] = useState<{ lineId: string; dayIndex: number } | null>(null);
+  const [newLineIds, setNewLineIds] = useState<Set<string>>(new Set());
   const activeInputRef = useRef<HTMLInputElement>(null);
   const todayDayIndex = useMemo(() => {
     const day = new Date().getDay();
@@ -402,10 +435,22 @@ export function WeekGrid() {
 
         savePinnedProjectIds([...pinnedProjectIds, project.id]);
 
+        const newLineId = `line-${project.id}`;
+        // Mark this line as new for animation
+        setNewLineIds((prev) => new Set(prev).add(newLineId));
+        // Remove from new lines set after animation completes
+        setTimeout(() => {
+          setNewLineIds((prev) => {
+            const next = new Set(prev);
+            next.delete(newLineId);
+            return next;
+          });
+        }, 800);
+
         return [
           ...current,
           {
-            id: `line-${project.id}`,
+            id: newLineId,
             projectId: project.id,
             clientId: project.clientId,
             clientName: project.clientName,
@@ -736,9 +781,12 @@ export function WeekGrid() {
                 const isActive =
                   activeCell?.lineId === line.id && activeCell?.dayIndex === activeMobileDayIndex;
                 const value = line.cells[String(activeMobileDayIndex)] ?? 0;
+                const clientKind = clients.find((c) => c.id === line.clientId)?.kind;
+                const category = getCategoryType(line.clientName, clientKind);
+                const isNew = newLineIds.has(line.id);
                 return (
-                  <tr key={`mobile-${line.id}`} className="rounded-xl bg-white/90 shadow-[0_1px_0_rgba(0,0,0,0.05)]">
-                    <td className="rounded-l-xl px-3 py-3 align-middle">
+                  <tr key={`mobile-${line.id}`} className={`rounded-xl bg-white/90 shadow-[0_1px_0_rgba(0,0,0,0.05)] ${isNew ? getCategoryAnimationClass(category) : ""}`}>
+                    <td className={`rounded-l-xl px-3 py-3 align-middle ${getCategoryBorderClass(category)}`}>
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-sm font-medium text-ink">{line.projectName}</p>
                         <button
@@ -850,9 +898,13 @@ export function WeekGrid() {
               </tr>
             </thead>
             <tbody>
-              {lines.map((line) => (
-                <tr key={line.id} className="rounded-xl bg-white/90 shadow-[0_1px_0_rgba(0,0,0,0.05)]">
-                  <td className="rounded-l-xl px-3 py-3 align-middle">
+              {lines.map((line) => {
+                const clientKind = clients.find((c) => c.id === line.clientId)?.kind;
+                const category = getCategoryType(line.clientName, clientKind);
+                const isNew = newLineIds.has(line.id);
+                return (
+                <tr key={line.id} className={`rounded-xl bg-white/90 shadow-[0_1px_0_rgba(0,0,0,0.05)] ${isNew ? getCategoryAnimationClass(category) : ""}`}>
+                  <td className={`rounded-l-xl px-3 py-3 align-middle ${getCategoryBorderClass(category)}`}>
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-sm font-medium text-ink">{line.projectName}</p>
                       <button
@@ -933,7 +985,8 @@ export function WeekGrid() {
                     );
                   })}
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
 

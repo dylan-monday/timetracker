@@ -4,6 +4,42 @@
 
 :root {
   color-scheme: light;
+
+  /* Category accent colors - subtle and sophisticated */
+  --color-client: #2d8a7b;     /* muted teal - professional, external work */
+  --color-internal: #b8956a;   /* warm amber - steady, operational */
+  --color-personal: #c47a7a;   /* soft rose - human, restorative */
+}
+
+/* Row fade-in animation for new week view lines */
+@keyframes rowFadeIn {
+  0% {
+    opacity: 0;
+    background-color: rgba(var(--fade-color-rgb, 0, 0, 0), 0.12);
+  }
+  50% {
+    opacity: 1;
+    background-color: rgba(var(--fade-color-rgb, 0, 0, 0), 0.08);
+  }
+  100% {
+    opacity: 1;
+    background-color: transparent;
+  }
+}
+
+.animate-row-fade-in-client {
+  --fade-color-rgb: 45, 138, 123;
+  animation: rowFadeIn 0.8s ease-out forwards;
+}
+
+.animate-row-fade-in-internal {
+  --fade-color-rgb: 184, 149, 106;
+  animation: rowFadeIn 0.8s ease-out forwards;
+}
+
+.animate-row-fade-in-personal {
+  --fade-color-rgb: 196, 122, 122;
+  animation: rowFadeIn 0.8s ease-out forwards;
 }
 
 * {

@@ -107,9 +107,42 @@ interface ProjectRow {
   projectId: string;
   projectName: string;
   clientName: string;
+  clientKind: string | null;
   minutes: number;
   hourlyRateCents: number | null;
   clientHourlyRateCents: number | null;
+}
+
+type CategoryType = "client" | "internal" | "personal";
+
+function getCategoryType(clientName: string, clientKind: string | null | undefined): CategoryType {
+  if (clientName.toLowerCase() === "personal") return "personal";
+  if (clientKind === "external") return "client";
+  return "internal";
+}
+
+function getCategoryBorderClass(category: CategoryType): string {
+  switch (category) {
+    case "client":
+      return "border-l-[3px] border-l-[var(--color-client)]";
+    case "internal":
+      return "border-l-[3px] border-l-[var(--color-internal)]";
+    case "personal":
+      return "border-l-[3px] border-l-[var(--color-personal)]";
+  }
+}
+
+function getSummaryAccentClass(category: CategoryType | null): string {
+  switch (category) {
+    case "client":
+      return "border-b-2 border-b-[var(--color-client)]/40";
+    case "internal":
+      return "border-b-2 border-b-[var(--color-internal)]/40";
+    case "personal":
+      return "border-b-2 border-b-[var(--color-personal)]/40";
+    default:
+      return "";
+  }
 }
 
 // Simple sparkline component
@@ -234,6 +267,7 @@ export default function TrendsPage() {
           projectId: project.id,
           projectName,
           clientName,
+          clientKind: clientKind ?? null,
           minutes: 0,
           hourlyRateCents: project.hourly_rate_cents ?? null,
           clientHourlyRateCents: project.clients?.hourly_rate_cents ?? null
@@ -295,19 +329,20 @@ export default function TrendsPage() {
         const endDate = getEndDateForPeriod(range, periodOffset);
         const { data: budgetData } = await supabase
           .from("time_entries")
-          .select("rounded_minutes,project_id,projects(id,name,budget_cents,hourly_rate_cents,clients(name,hourly_rate_cents))")
+          .select("rounded_minutes,project_id,projects(id,name,budget_cents,hourly_rate_cents,clients(name,kind,hourly_rate_cents))")
           .eq("status", "approved")
           .gte("entry_date", startDate)
           .lte("entry_date", endDate);
 
         const budgetProjects = new Map<string, ProjectRow & { budgetCents: number }>();
         for (const row of budgetData ?? []) {
-          const project = row.projects as { id?: string; name?: string; budget_cents?: number | null; hourly_rate_cents?: number | null; clients?: { name?: string; hourly_rate_cents?: number | null } } | null;
+          const project = row.projects as { id?: string; name?: string; budget_cents?: number | null; hourly_rate_cents?: number | null; clients?: { name?: string; kind?: string; hourly_rate_cents?: number | null } } | null;
           if (project?.id && project?.budget_cents && project.budget_cents > 0) {
             const existing = budgetProjects.get(project.id) ?? {
               projectId: project.id,
               projectName: project.name ?? "Untitled",
               clientName: project.clients?.name ?? "Client",
+              clientKind: project.clients?.kind ?? null,
               minutes: 0,
               budgetCents: project.budget_cents,
               hourlyRateCents: project.hourly_rate_cents ?? null,
@@ -400,25 +435,29 @@ export default function TrendsPage() {
         label: "Total",
         value: toHours(totals.total),
         sparkline: sparklineData("total"),
-        comparison: getComparison(totals.total, prevTotals?.total)
+        comparison: getComparison(totals.total, prevTotals?.total),
+        category: null as CategoryType | null
       },
       {
         label: "Client delivery",
         value: toHours(totals.client),
         sparkline: sparklineData("client"),
-        comparison: getComparison(totals.client, prevTotals?.client)
+        comparison: getComparison(totals.client, prevTotals?.client),
+        category: "client" as CategoryType | null
       },
       {
         label: "Internal investment",
         value: toHours(totals.internal),
         sparkline: sparklineData("internal"),
-        comparison: getComparison(totals.internal, prevTotals?.internal)
+        comparison: getComparison(totals.internal, prevTotals?.internal),
+        category: "internal" as CategoryType | null
       },
       {
         label: "Personal",
         value: toHours(totals.personal),
         sparkline: sparklineData("personal"),
-        comparison: getComparison(totals.personal, prevTotals?.personal)
+        comparison: getComparison(totals.personal, prevTotals?.personal),
+        category: "personal" as CategoryType | null
       }
     ];
   }, [totals, prevTotals, historicalTotals, range]);
@@ -560,7 +599,7 @@ export default function TrendsPage() {
         {/* Summary cards */}
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {cards.map((card) => (
-            <article key={card.label} className="rounded-xl bg-white p-3">
+            <article key={card.label} className={`rounded-xl bg-white p-3 ${getSummaryAccentClass(card.category)}`}>
               <p className="text-xs uppercase tracking-wide text-muted">{card.label}</p>
               <p className="font-numeric mt-1 text-2xl font-semibold tracking-tight">
                 {loading ? "..." : card.value}
@@ -593,8 +632,10 @@ export default function TrendsPage() {
         <p className="mt-1 text-sm text-muted">Where your hours went this {range}.</p>
         {valueRows.length ? (
           <div className="mt-3 grid gap-3 lg:grid-cols-2">
-            {valueRows.map((row) => (
-              <article key={row.projectId} className="rounded-xl bg-white p-3">
+            {valueRows.map((row) => {
+              const category = getCategoryType(row.clientName, row.clientKind);
+              return (
+              <article key={row.projectId} className={`rounded-xl bg-white p-3 ${getCategoryBorderClass(category)}`}>
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-sm font-medium text-ink">{row.projectName}</p>
@@ -610,7 +651,8 @@ export default function TrendsPage() {
                   </p>
                 )}
               </article>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="mt-3 rounded-xl border border-dashed border-black/15 p-3 text-sm text-muted">
@@ -625,8 +667,10 @@ export default function TrendsPage() {
         <p className="mt-1 text-sm text-muted">How active projects are tracking against budget.</p>
         {budgetRows.length ? (
           <div className="mt-3 grid gap-3 lg:grid-cols-2">
-            {budgetRows.map((row) => (
-              <article key={row.projectId} className="rounded-xl bg-white p-3">
+            {budgetRows.map((row) => {
+              const category = getCategoryType(row.clientName, row.clientKind);
+              return (
+              <article key={row.projectId} className={`rounded-xl bg-white p-3 ${getCategoryBorderClass(category)}`}>
                 <p className="text-sm font-medium text-ink">{row.projectName}</p>
                 <p className="text-xs text-muted">{row.clientName}</p>
                 <div className="mt-2 flex items-center justify-between text-xs text-muted">
@@ -645,7 +689,8 @@ export default function TrendsPage() {
                   </span>
                 </div>
               </article>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="mt-3 rounded-xl border border-dashed border-black/15 p-3 text-sm text-muted">
