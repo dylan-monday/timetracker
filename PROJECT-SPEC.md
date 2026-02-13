@@ -14,6 +14,7 @@ Current UX direction:
 - Cursor-inspired, light but not stark white.
 - High usability on mobile.
 - Human language over accounting language.
+- Warm, sophisticated color palette.
 
 ---
 
@@ -24,6 +25,7 @@ Current UX direction:
 - Rows are project lines (each project belongs to one client).
 - Cells store rounded minutes per day (15-minute increments).
 - Manual input accepts shorthand (`1.5`, `1h 30m`, `90m`).
+- **Draggable rows**: Entire rows can be dragged to reorder. Order persists in localStorage.
 - Quick Add line supports:
   - selecting existing client + project
   - creating new client/project inline
@@ -41,6 +43,10 @@ Current UX direction:
   - Today's column has a subtle warm amber tint
   - Past days appear slightly muted
   - Future days appear lighter/more open
+- **Category color coding**: 3px left border on each row indicates category:
+  - Teal (#2d8a7b) = External client work
+  - Amber (#b8956a) = Internal investment
+  - Rose (#c47a7a) = Personal time
 - Time-based ambient background:
   - Background colors shift based on local time of day (morning/midday/afternoon/evening/night)
   - Gradients slowly drift position over 30-60 second cycles
@@ -52,7 +58,7 @@ Current UX direction:
 - Mapping is required (or reject) in intended workflow.
 - Imported calendar entries include event title and time range for review context.
 
-### Admin (role-gated in same app)
+### Settings (role-gated in same app)
 - Add/archive clients.
 - Add/archive projects.
 - Rename projects.
@@ -63,19 +69,67 @@ Current UX direction:
 
 ### Trends
 - Range views: week/month/quarter/year.
-- Totals: total, client work, internal, exercise.
+- **Period navigation**: Navigate to past periods with prev/next arrows and keyboard shortcuts.
+- Summary cards: Total, Client delivery, Internal investment, Personal.
+- **Sparklines**: 8-period trend charts under each summary card.
+- **Period comparisons**: Neutral indicators (↑/↓/—) showing change vs previous period.
+- **Weekly narrative**: Prominent editorial summary of where time went (own card, larger font).
+- Project breakdown with category color coding.
 - Project value estimates:
   - value = hours * effective rate
   - effective rate precedence: project rate -> client rate -> user rate
 - Budget tracking (when budget exists): burn + remaining.
 
+### Footer Messages
+- Rotating motivational/philosophical messages about time and work.
+- Mix of product-voice statements (no attribution) and quotes with attribution.
+- Source file: `content/footer-messages.md` and `lib/footer-messages.ts`.
+- Changes daily based on date seed.
+
 ### Email Jobs
-- Daily reminder email: "Do your time".
-- Weekly recap email: summary totals and trends link.
+- Daily reminder email: "Quick snapshot of your [day name]".
+- Weekly recap email: "Your week, wrapped" with summary totals.
 
 ---
 
-## 3) Data + Rules
+## 3) Design System
+
+### Typography
+- **Display font**: Instrument Serif (page titles: "Your Week", "Trends", "Settings")
+- **Body font**: Instrument Sans (400, 500, 600 weights)
+- Font weights reduced by one step throughout (semibold → medium)
+
+### Color Palette (Warm)
+| Token | Value | Usage |
+|-------|-------|-------|
+| `canvas` | #f5f6f3 | Page background |
+| `panel` | #fbfcf9 | Card backgrounds |
+| `ink` | #1a1815 | Primary text (warm near-black) |
+| `muted` | #6b6560 | Secondary text (warm gray) |
+| `subtle` | #a39e98 | Tertiary text (warm light gray) |
+| `border` | #e8e4df | Borders (warm) |
+| `accent` | #84e178 | Success/positive |
+| `accentStrong` | #58c857 | Strong success |
+| `warning` | #f4c760 | Warning states |
+| `danger` | #f07b7b | Error/danger |
+
+### Category Colors (CSS Variables)
+| Variable | Value | Usage |
+|----------|-------|-------|
+| `--color-client` | #2d8a7b | External client work |
+| `--color-internal` | #b8956a | Internal investment |
+| `--color-personal` | #c47a7a | Personal time |
+
+### Daily Total Pills
+Hours-based color gradation (no text labels):
+- 8+ hours: Green border/background with saturated green text (#2d7a3d)
+- 6-8 hours: Lighter green tint
+- 4-6 hours: Neutral gray
+- 0-4 hours: Very light/transparent
+
+---
+
+## 4) Data + Rules
 
 ### Key entities
 - `profiles` (role, timezone, hourly rate)
@@ -87,16 +141,23 @@ Current UX direction:
 - `project_merge_events` (forward-only remapping history)
 - `email_jobs` (cron send tracking)
 
+### Default Personal Projects
+Created via `create_default_internal_clients()`:
+- Thinking & Strategy
+- Recharging
+- Exercise
+- Personal Development
+- Reading
+
 ### Important business rules
 - Allowed auth domain: `@mondayandpartners.com`.
 - Admin default: `dylan@mondayandpartners.com` (also enforced in app fallback).
 - Rounding: nearest 15 minutes.
-- Missing-time logic uses 8:00-17:00 daily window for signal, not punitive accounting.
 - Project merge is forward-only from effective date.
 
 ---
 
-## 4) Architecture
+## 5) Architecture
 
 - Framework: Next.js (App Router) + React + TypeScript + Tailwind.
 - DB/Auth: Supabase (Postgres + RLS + Google OAuth via Supabase Auth).
@@ -106,14 +167,14 @@ Current UX direction:
 Important routes:
 - `/week` - week grid + calendar drafts
 - `/trends` - time/value summaries
-- `/admin` - role-gated management
+- `/admin` - role-gated management (labeled "Settings" in UI)
 - `POST /api/calendar/sync` - imports from active iCal feed sources
 - `POST /api/cron/daily-reminder`
 - `POST /api/cron/weekly-recap`
 
 ---
 
-## 5) Environment Variables (Required)
+## 6) Environment Variables (Required)
 
 Set these in local `.env.local` and Vercel project envs:
 
@@ -135,7 +196,7 @@ Notes:
 
 ---
 
-## 6) Login IDs, Ownership, and Non-Secret Identifiers
+## 7) Login IDs, Ownership, and Non-Secret Identifiers
 
 ### App/Auth
 - Allowed user domain: `mondayandpartners.com`
@@ -159,7 +220,7 @@ Notes:
 
 ---
 
-## 7) Setup Flow (Clean Install)
+## 8) Setup Flow (Clean Install)
 
 1. Clone and install:
    - `npm install`
@@ -182,16 +243,44 @@ Notes:
 
 ---
 
-## 8) Current Known Issues / Watchlist
+## 9) Backlog
 
-- Calendar sync quality depends on clean feed sources and mapping workflow; noisy shared calendars can still require filtering decisions.
+### Week Navigation
+- Allow navigating to previous/future weeks to view and edit historical data
+- Complexity: Moderate (2-3 hours)
+- Pattern already exists in Trends page (`periodOffset` state)
+- Would require: offset state, updated `makeWeekDays()`, prev/next buttons
+
+### Calendar Drafts Workflow
+- Ensure nothing remains unmapped
+- Required state: each draft must be either mapped to a valid project, or rejected
+- No "unmapped skipped" end-state in normal usage
 
 ---
 
-## 9) Operational Notes
+## 10) Operational Notes
 
 - `Sync` in week view = refreshes week data from DB only.
 - `Sync calendars` = runs calendar import pipeline.
 - Calendar imports are draft-first by design to preserve user control.
 - If schema drift occurs (older DB), app includes fallback handling for missing rate columns in some queries.
 
+---
+
+## 11) Key Files Reference
+
+| Area | Files |
+|------|-------|
+| Week grid (mobile + desktop) | `components/week-grid.tsx` |
+| Trends page | `app/trends/page.tsx` |
+| Settings/Admin | `app/admin/page.tsx` |
+| App shell + nav | `components/app-shell.tsx` |
+| Auth gate | `components/auth-gate.tsx` |
+| Ambient background | `components/ambient-motion.tsx` |
+| Footer messages | `lib/footer-messages.ts`, `content/footer-messages.md` |
+| Color/typography config | `tailwind.config.ts`, `app/globals.css` |
+| Font setup | `app/layout.tsx` |
+| Calendar sync API | `app/api/calendar/sync/route.ts` |
+| Email templates | `lib/server/email-templates.ts` |
+| Week data fetching | `lib/supabase/week.ts` |
+| Types | `lib/types.ts` |
