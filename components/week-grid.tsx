@@ -21,14 +21,15 @@ import type { ClientOption, DraftEntry, ProjectOption, WeekLine } from "@/lib/ty
 const BUSINESS_DAY_INDEXES = [1, 2, 3, 4, 5];
 const ALL_DAY_INDEXES = [1, 2, 3, 4, 5, 6, 7];
 const WEEK_LINE_STORAGE_PREFIX = "mp-time-week-lines";
+const LINE_ORDER_STORAGE_KEY = "mp-time-line-order";
 const QUICK_TAG_STORAGE_KEY = "mp-time-quick-tags";
 
 // Pill styling for daily totals with subtle color gradation based on hours logged
 // No words, no judgments — just a gentle visual shift
 function dailyTotalPillClass(minutes: number): string {
   const hours = minutes / 60;
-  if (hours >= 8) return "border border-accent/40 bg-accent/20 text-accent/90";
-  if (hours >= 6) return "border border-accent/30 bg-accent/12 text-accent/80";
+  if (hours >= 8) return "border border-accentStrong/50 bg-accent/25 text-[#2d7a3d]";
+  if (hours >= 6) return "border border-accent/40 bg-accent/15 text-[#3d8a4d]";
   if (hours >= 4) return "border border-black/10 bg-black/[0.04] text-ink/70";
   if (hours > 0) return "border border-black/8 bg-black/[0.025] text-ink/60";
   return "border border-black/5 bg-transparent text-muted/60";
@@ -169,6 +170,9 @@ export function WeekGrid() {
   const [pinnedProjectIds, setPinnedProjectIds] = useState<string[]>([]);
   const [savedCell, setSavedCell] = useState<{ lineId: string; dayIndex: number } | null>(null);
   const [newLineIds, setNewLineIds] = useState<Set<string>>(new Set());
+  const [lineOrder, setLineOrder] = useState<string[]>([]);
+  const [draggedLineId, setDraggedLineId] = useState<string | null>(null);
+  const [dragOverLineId, setDragOverLineId] = useState<string | null>(null);
   const activeInputRef = useRef<HTMLInputElement>(null);
   const todayDayIndex = useMemo(() => {
     const day = new Date().getDay();
@@ -242,6 +246,105 @@ export function WeekGrid() {
       setSavedQuickTags([]);
     }
   }, []);
+
+  // Load line order from localStorage
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = window.localStorage.getItem(LINE_ORDER_STORAGE_KEY);
+    if (!raw) {
+      setLineOrder([]);
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        setLineOrder(parsed.filter((item) => typeof item === "string"));
+      } else {
+        setLineOrder([]);
+      }
+    } catch {
+      setLineOrder([]);
+    }
+  }, []);
+
+  // Save line order to localStorage
+  const saveLineOrder = useCallback((order: string[]) => {
+    setLineOrder(order);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(LINE_ORDER_STORAGE_KEY, JSON.stringify(order));
+    }
+  }, []);
+
+  // Sort lines based on saved order
+  const sortedLines = useMemo(() => {
+    if (lineOrder.length === 0) return lines;
+
+    const orderMap = new Map(lineOrder.map((id, index) => [id, index]));
+    return [...lines].sort((a, b) => {
+      const aIndex = orderMap.get(a.id) ?? Infinity;
+      const bIndex = orderMap.get(b.id) ?? Infinity;
+      return aIndex - bIndex;
+    });
+  }, [lines, lineOrder]);
+
+  // Handle drag start
+  const handleDragStart = useCallback((e: React.DragEvent, lineId: string) => {
+    setDraggedLineId(lineId);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", lineId);
+    // Add a slight delay to allow the drag image to be captured
+    setTimeout(() => {
+      const target = e.target as HTMLElement;
+      target.style.opacity = "0.5";
+    }, 0);
+  }, []);
+
+  // Handle drag end
+  const handleDragEnd = useCallback((e: React.DragEvent) => {
+    const target = e.target as HTMLElement;
+    target.style.opacity = "1";
+    setDraggedLineId(null);
+    setDragOverLineId(null);
+  }, []);
+
+  // Handle drag over
+  const handleDragOver = useCallback((e: React.DragEvent, lineId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (lineId !== draggedLineId) {
+      setDragOverLineId(lineId);
+    }
+  }, [draggedLineId]);
+
+  // Handle drop - reorder lines
+  const handleDrop = useCallback((e: React.DragEvent, targetLineId: string) => {
+    e.preventDefault();
+    const sourceLineId = e.dataTransfer.getData("text/plain");
+
+    if (!sourceLineId || sourceLineId === targetLineId) {
+      setDragOverLineId(null);
+      return;
+    }
+
+    // Get current order (using sortedLines to respect existing order)
+    const currentOrder = sortedLines.map((line) => line.id);
+    const sourceIndex = currentOrder.indexOf(sourceLineId);
+    const targetIndex = currentOrder.indexOf(targetLineId);
+
+    if (sourceIndex === -1 || targetIndex === -1) {
+      setDragOverLineId(null);
+      return;
+    }
+
+    // Remove source and insert at target position
+    const newOrder = [...currentOrder];
+    newOrder.splice(sourceIndex, 1);
+    newOrder.splice(targetIndex, 0, sourceLineId);
+
+    saveLineOrder(newOrder);
+    setDragOverLineId(null);
+  }, [sortedLines, saveLineOrder]);
 
   const refreshWeekData = useCallback(async () => {
     if (!user || !supabase) return;
@@ -777,7 +880,7 @@ export function WeekGrid() {
 
           <table className="w-full border-separate border-spacing-y-2 text-sm">
             <tbody>
-              {lines.map((line) => {
+              {sortedLines.map((line) => {
                 const isActive =
                   activeCell?.lineId === line.id && activeCell?.dayIndex === activeMobileDayIndex;
                 const value = line.cells[String(activeMobileDayIndex)] ?? 0;
@@ -788,7 +891,7 @@ export function WeekGrid() {
                   <tr key={`mobile-${line.id}`} className={`rounded-xl bg-white/90 shadow-[0_1px_0_rgba(0,0,0,0.05)] ${isNew ? getCategoryAnimationClass(category) : ""}`}>
                     <td className={`rounded-l-xl px-3 py-3 align-middle ${getCategoryBorderClass(category)}`}>
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-medium text-ink">{line.projectName}</p>
+                        <p className="cursor-move select-none text-sm font-medium text-ink">{line.projectName}</p>
                         <button
                           type="button"
                           className="rounded-full border border-black/10 bg-white p-1.5 text-muted transition hover:border-black/20 hover:text-ink"
@@ -898,15 +1001,28 @@ export function WeekGrid() {
               </tr>
             </thead>
             <tbody>
-              {lines.map((line) => {
+              {sortedLines.map((line) => {
                 const clientKind = clients.find((c) => c.id === line.clientId)?.kind;
                 const category = getCategoryType(line.clientName, clientKind);
                 const isNew = newLineIds.has(line.id);
+                const isDragOver = dragOverLineId === line.id;
                 return (
-                <tr key={line.id} className={`rounded-xl bg-white/90 shadow-[0_1px_0_rgba(0,0,0,0.05)] ${isNew ? getCategoryAnimationClass(category) : ""}`}>
+                <tr
+                  key={line.id}
+                  className={`rounded-xl bg-white/90 shadow-[0_1px_0_rgba(0,0,0,0.05)] transition-all ${isNew ? getCategoryAnimationClass(category) : ""} ${isDragOver ? "ring-2 ring-accent/50" : ""}`}
+                  onDragOver={(e) => handleDragOver(e, line.id)}
+                  onDrop={(e) => handleDrop(e, line.id)}
+                >
                   <td className={`rounded-l-xl px-3 py-3 align-middle ${getCategoryBorderClass(category)}`}>
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-medium text-ink">{line.projectName}</p>
+                      <p
+                        className="cursor-move select-none text-sm font-medium text-ink"
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, line.id)}
+                        onDragEnd={handleDragEnd}
+                      >
+                        {line.projectName}
+                      </p>
                       <button
                         type="button"
                         className="rounded-full border border-black/10 bg-white p-1.5 text-muted transition hover:border-black/20 hover:text-ink"
