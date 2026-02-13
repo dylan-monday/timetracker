@@ -19,36 +19,37 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 // Time period color palettes
 // Each has 3 gradient colors: primary, secondary, tertiary
+// Colors are more saturated for visibility while remaining tasteful
 const TIME_PALETTES = {
-  // Morning (6am-11am): Cool, crisp - soft blues, light teals, clean whites
+  // Morning (6am-11am): Cool, crisp - sky blues, teals, soft lavender
   morning: {
-    primary: { r: 180, g: 210, b: 230 },    // soft sky blue
-    secondary: { r: 160, g: 200, b: 195 },  // light teal
-    tertiary: { r: 240, g: 245, b: 250 },   // clean white-blue
+    primary: { r: 130, g: 190, b: 235 },    // clear sky blue
+    secondary: { r: 100, g: 195, b: 180 },  // teal
+    tertiary: { r: 200, g: 195, b: 230 },   // soft lavender
   },
-  // Midday (11am-2pm): Bright, neutral - warm whites, subtle golds, light sage
+  // Midday (11am-2pm): Bright energy - warm gold, sage green, soft coral
   midday: {
-    primary: { r: 250, g: 248, b: 240 },    // warm white
-    secondary: { r: 235, g: 225, b: 190 },  // subtle gold
-    tertiary: { r: 210, g: 225, b: 200 },   // light sage
+    primary: { r: 245, g: 220, b: 150 },    // warm gold
+    secondary: { r: 160, g: 200, b: 160 },  // sage green
+    tertiary: { r: 250, g: 200, b: 180 },   // soft coral
   },
-  // Afternoon (2pm-5pm): Warm tones - soft amber, warm gray, muted gold
+  // Afternoon (2pm-5pm): Warm focus - amber, terracotta, golden wheat
   afternoon: {
-    primary: { r: 240, g: 215, b: 180 },    // soft amber
-    secondary: { r: 220, g: 215, b: 210 },  // warm gray
-    tertiary: { r: 235, g: 220, b: 175 },   // muted gold
+    primary: { r: 240, g: 180, b: 120 },    // amber
+    secondary: { r: 210, g: 160, b: 145 },  // terracotta
+    tertiary: { r: 235, g: 205, b: 140 },   // golden wheat
   },
-  // Evening (5pm-9pm): Golden hour - deeper warm, soft peach, dusty rose
+  // Evening (5pm-9pm): Golden hour - peach, dusty rose, warm mauve
   evening: {
-    primary: { r: 245, g: 200, b: 160 },    // warm peach
-    secondary: { r: 230, g: 190, b: 180 },  // dusty rose
-    tertiary: { r: 220, g: 195, b: 170 },   // warm sand
+    primary: { r: 250, g: 175, b: 130 },    // warm peach
+    secondary: { r: 225, g: 160, b: 170 },  // dusty rose
+    tertiary: { r: 200, g: 170, b: 190 },   // warm mauve
   },
-  // Night (9pm-6am): Cool and dim - deep blue-gray, slate, muted indigo
+  // Night (9pm-6am): Cool calm - deep blue, slate purple, indigo
   night: {
-    primary: { r: 150, g: 165, b: 185 },    // blue-gray
-    secondary: { r: 140, g: 150, b: 170 },  // slate
-    tertiary: { r: 165, g: 160, b: 180 },   // muted indigo
+    primary: { r: 120, g: 150, b: 195 },    // deep blue
+    secondary: { r: 150, g: 140, b: 180 },  // slate purple
+    tertiary: { r: 130, g: 130, b: 175 },   // indigo
   },
 } as const;
 
@@ -165,20 +166,20 @@ export function AmbientMotion() {
     const gradient = `
       radial-gradient(
         ellipse 80% 70% at ${positions.p1.x}% ${positions.p1.y}%,
-        ${rgbaString(colors.primary, 0.45)} 0%,
-        ${rgbaString(colors.primary, 0.2)} 35%,
+        ${rgbaString(colors.primary, 0.55)} 0%,
+        ${rgbaString(colors.primary, 0.25)} 35%,
         transparent 65%
       ),
       radial-gradient(
         ellipse 70% 80% at ${positions.p2.x}% ${positions.p2.y}%,
-        ${rgbaString(colors.secondary, 0.4)} 0%,
-        ${rgbaString(colors.secondary, 0.15)} 40%,
+        ${rgbaString(colors.secondary, 0.5)} 0%,
+        ${rgbaString(colors.secondary, 0.2)} 40%,
         transparent 70%
       ),
       radial-gradient(
         ellipse 90% 60% at ${positions.p3.x}% ${positions.p3.y}%,
-        ${rgbaString(colors.tertiary, 0.35)} 0%,
-        ${rgbaString(colors.tertiary, 0.12)} 45%,
+        ${rgbaString(colors.tertiary, 0.45)} 0%,
+        ${rgbaString(colors.tertiary, 0.18)} 45%,
         transparent 75%
       ),
       linear-gradient(to bottom, #f5f6f3 0%, #f5f6f3 100%)
