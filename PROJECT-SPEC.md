@@ -33,6 +33,10 @@ Current UX direction:
 - Mobile day navigator supports:
   - relative labels (`Today`, `Yesterday`, `Tomorrow`)
   - swipe left/right day switching
+- Time entry feedback:
+  - iOS keyboard dismisses immediately on Done tap
+  - Visual save confirmation (green checkmark) appears briefly after successful entry
+  - Works identically on mobile and desktop
 
 ### Calendar Drafts Inbox
 - Calendar imports create `draft` entries, not auto-approved final entries.
