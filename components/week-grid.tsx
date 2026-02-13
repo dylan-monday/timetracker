@@ -5,7 +5,6 @@ import { Check, ChevronLeft, ChevronRight, Plus, RefreshCw, Sparkles, Trash2 } f
 import { getRandomMessage, type FooterMessage } from "@/lib/footer-messages";
 import { useAuth } from "@/components/auth-provider";
 import { makeWeekDays } from "@/lib/mock-data";
-import { missingMinutes, missingState } from "@/lib/missing-time";
 import {
   approveDraftEntry,
   deleteLineEntriesForWeek,
@@ -24,10 +23,15 @@ const ALL_DAY_INDEXES = [1, 2, 3, 4, 5, 6, 7];
 const WEEK_LINE_STORAGE_PREFIX = "mp-time-week-lines";
 const QUICK_TAG_STORAGE_KEY = "mp-time-quick-tags";
 
-function stateClass(state: "ok" | "attention" | "gap"): string {
-  if (state === "ok") return "border border-accent/35 bg-accent/25 text-ink";
-  if (state === "attention") return "border border-sky-200/80 bg-sky-100/80 text-ink";
-  return "border border-sky-300/85 bg-sky-100 text-ink";
+// Pill styling for daily totals with subtle color gradation based on hours logged
+// No words, no judgments — just a gentle visual shift
+function dailyTotalPillClass(minutes: number): string {
+  const hours = minutes / 60;
+  if (hours >= 8) return "border border-accent/40 bg-accent/20 text-accent/90";
+  if (hours >= 6) return "border border-accent/30 bg-accent/12 text-accent/80";
+  if (hours >= 4) return "border border-black/10 bg-black/[0.04] text-ink/70";
+  if (hours > 0) return "border border-black/8 bg-black/[0.025] text-ink/60";
+  return "border border-black/5 bg-transparent text-muted/60";
 }
 
 function isWeekendIsoDate(isoDate: string): boolean {
@@ -242,7 +246,6 @@ export function WeekGrid() {
   }, {});
   const mobileDay = weekDays[activeMobileDayIndex - 1];
   const mobileMinutes = totalsByDay[activeMobileDayIndex] ?? 0;
-  const mobileStatus = missingState(mobileMinutes);
   const mobilePrimaryLabel = mobileDayLabel(activeMobileDayIndex, todayDayIndex, mobileDay?.label ?? "");
 
   const shiftMobileDay = (direction: -1 | 1) => {
@@ -721,14 +724,9 @@ export function WeekGrid() {
               <p className="text-sm font-medium">
                 {mobileDay?.label} {mobileDay?.day}
               </p>
-              <p className="font-numeric text-xs text-muted">{minutesToDisplay(mobileMinutes)}</p>
-            </div>
-            <div className={`mt-2 font-numeric rounded-2xl px-3 py-2 text-[11px] leading-tight ${stateClass(mobileStatus)}`}>
-              {mobileStatus === "ok" ? (
-                <span className="font-medium">Good day</span>
-              ) : (
-                <span className="font-semibold">{Math.round(missingMinutes(mobileMinutes) / 60)}h to go</span>
-              )}
+              <span className={`font-numeric rounded-full px-3 py-1 text-sm font-medium ${dailyTotalPillClass(mobileMinutes)}`}>
+                {minutesToDisplay(mobileMinutes)}
+              </span>
             </div>
           </div>
 
@@ -825,7 +823,6 @@ export function WeekGrid() {
                 {visibleDayIndexes.map((dayIndex, dayPosition) => {
                   const day = weekDays[dayIndex - 1];
                   const minutes = totalsByDay[dayIndex] ?? 0;
-                  const status = missingState(minutes);
                   const isWeekend = isWeekendIsoDate(day.isoDate);
                   const temporal = getTemporalState(day.isoDate);
 
@@ -843,18 +840,9 @@ export function WeekGrid() {
                           {day.label} {day.day}
                           {temporal === "today" && <span className="ml-1.5 text-[10px] font-medium normal-case tracking-normal">today</span>}
                         </p>
-                        <p className="mt-0.5 font-numeric text-[13px] text-muted">
-                          {minutesToDisplay(minutes)}
-                        </p>
                       </div>
-                      <div
-                        className={`font-numeric rounded-2xl px-3 py-2 text-[11px] leading-tight ${stateClass(status)}`}
-                      >
-                        {status === "ok" ? (
-                          <span className="font-medium">Good day</span>
-                        ) : (
-                          <span className="font-semibold">{Math.round(missingMinutes(minutes) / 60)}h to go</span>
-                        )}
+                      <div className={`font-numeric rounded-full px-3 py-1.5 text-[13px] font-medium ${dailyTotalPillClass(minutes)}`}>
+                        {minutesToDisplay(minutes)}
                       </div>
                     </th>
                   );
