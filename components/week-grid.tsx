@@ -891,7 +891,7 @@ export function WeekGrid() {
                   <tr key={`mobile-${line.id}`} className={`rounded-xl bg-white/90 shadow-[0_1px_0_rgba(0,0,0,0.05)] ${isNew ? getCategoryAnimationClass(category) : ""}`}>
                     <td className={`rounded-l-xl px-3 py-3 align-middle ${getCategoryBorderClass(category)}`}>
                       <div className="flex items-center justify-between gap-2">
-                        <p className="cursor-move select-none text-sm font-medium text-ink">{line.projectName}</p>
+                        <p className="text-sm font-medium text-ink">{line.projectName}</p>
                         <button
                           type="button"
                           className="rounded-full border border-black/10 bg-white p-1.5 text-muted transition hover:border-black/20 hover:text-ink"
@@ -1009,18 +1009,16 @@ export function WeekGrid() {
                 return (
                 <tr
                   key={line.id}
-                  className={`rounded-xl bg-white/90 shadow-[0_1px_0_rgba(0,0,0,0.05)] transition-all ${isNew ? getCategoryAnimationClass(category) : ""} ${isDragOver ? "ring-2 ring-accent/50" : ""}`}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, line.id)}
+                  onDragEnd={handleDragEnd}
                   onDragOver={(e) => handleDragOver(e, line.id)}
                   onDrop={(e) => handleDrop(e, line.id)}
+                  className={`cursor-move rounded-xl bg-white/90 shadow-[0_1px_0_rgba(0,0,0,0.05)] transition-all ${isNew ? getCategoryAnimationClass(category) : ""} ${isDragOver ? "ring-2 ring-accent/50" : ""}`}
                 >
                   <td className={`rounded-l-xl px-3 py-3 align-middle ${getCategoryBorderClass(category)}`}>
                     <div className="flex items-center justify-between gap-2">
-                      <p
-                        className="cursor-move select-none text-sm font-medium text-ink"
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, line.id)}
-                        onDragEnd={handleDragEnd}
-                      >
+                      <p className="select-none text-sm font-medium text-ink">
                         {line.projectName}
                       </p>
                       <button
