@@ -174,6 +174,7 @@ export function WeekGrid() {
   const [draggedLineId, setDraggedLineId] = useState<string | null>(null);
   const [dragOverLineId, setDragOverLineId] = useState<string | null>(null);
   const activeInputRef = useRef<HTMLInputElement>(null);
+  const isSubmittingRef = useRef(false);
   const todayDayIndex = useMemo(() => {
     const day = new Date().getDay();
     return day === 0 ? 7 : day;
@@ -415,8 +416,10 @@ export function WeekGrid() {
   };
 
   const handleCellSubmit = async () => {
-    // Explicitly blur the input first to dismiss mobile keyboard immediately
-    activeInputRef.current?.blur();
+    // Prevent double submission from both onKeyDown and onBlur firing
+    if (isSubmittingRef.current) {
+      return;
+    }
 
     if (!activeCell || !user || !supabase) {
       setActiveCell(null);
@@ -424,12 +427,19 @@ export function WeekGrid() {
       return;
     }
 
+    // Mark submission in progress BEFORE blur to prevent race condition
+    isSubmittingRef.current = true;
+
+    // Explicitly blur the input first to dismiss mobile keyboard immediately
+    activeInputRef.current?.blur();
+
     const cellToSave = { lineId: activeCell.lineId, dayIndex: activeCell.dayIndex };
 
     const rounded = parseAndRoundTimeInput(entryInput);
     if (rounded === null) {
       setActiveCell(null);
       setEntryInput("");
+      isSubmittingRef.current = false;
       return;
     }
 
@@ -437,6 +447,7 @@ export function WeekGrid() {
     if (!line?.projectId) {
       setActiveCell(null);
       setEntryInput("");
+      isSubmittingRef.current = false;
       return;
     }
 
@@ -444,6 +455,7 @@ export function WeekGrid() {
     if (!isoDate) {
       setActiveCell(null);
       setEntryInput("");
+      isSubmittingRef.current = false;
       return;
     }
 
@@ -490,6 +502,7 @@ export function WeekGrid() {
       await refreshWeekData();
     } finally {
       setSaving(false);
+      isSubmittingRef.current = false;
     }
   };
 
