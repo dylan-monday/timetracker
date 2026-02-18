@@ -100,7 +100,8 @@ export async function fetchWeekLines(
     .from("time_entries")
     .select("id,project_id,entry_date,rounded_minutes,status")
     .gte("entry_date", window.start)
-    .lte("entry_date", window.end);
+    .lte("entry_date", window.end)
+    .neq("status", "rejected");
 
   if (error) throw error;
 
