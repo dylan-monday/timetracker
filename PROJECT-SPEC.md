@@ -41,6 +41,7 @@ Current UX direction:
   - Works identically on mobile and desktop
   - Double-submission guard prevents duplicate entries when Enter + blur both fire
   - Manual entry overrides any existing entries (manual or calendar) for that project/day
+  - Rejected calendar entries are excluded from week view totals
 - Today column visual distinction:
   - Today's column has a subtle warm amber tint
   - Past days appear slightly muted
