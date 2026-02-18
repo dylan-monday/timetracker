@@ -183,13 +183,14 @@ export async function upsertDailyManualEntry(params: {
 }): Promise<void> {
   const { supabase, userId, projectId, isoDate, roundedMinutes } = params;
 
+  // Delete ALL entries (manual and calendar) for this project/day
+  // Manual entry represents the user's final word on time for that day
   const { error: deleteError } = await supabase
     .from("time_entries")
     .delete()
     .eq("owner_id", userId)
     .eq("project_id", projectId)
-    .eq("entry_date", isoDate)
-    .eq("source", "manual");
+    .eq("entry_date", isoDate);
 
   if (deleteError) throw deleteError;
 

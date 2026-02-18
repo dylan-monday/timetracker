@@ -40,6 +40,7 @@ Current UX direction:
   - Visual save confirmation (green checkmark) appears briefly after successful entry
   - Works identically on mobile and desktop
   - Double-submission guard prevents duplicate entries when Enter + blur both fire
+  - Manual entry overrides any existing entries (manual or calendar) for that project/day
 - Today column visual distinction:
   - Today's column has a subtle warm amber tint
   - Past days appear slightly muted
