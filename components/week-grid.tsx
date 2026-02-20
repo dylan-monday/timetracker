@@ -5,6 +5,7 @@ import { Check, ChevronLeft, ChevronRight, Plus, RefreshCw, Sparkles, Trash2 } f
 import { getRandomMessage, type FooterMessage } from "@/lib/footer-messages";
 import { useAuth } from "@/components/auth-provider";
 import { makeWeekDays } from "@/lib/mock-data";
+import { ComboBox, type ComboBoxOption } from "@/components/combobox";
 import {
   approveDraftEntry,
   deleteLineEntriesForWeek,
@@ -1156,38 +1157,35 @@ export function WeekGrid() {
             <p className="mt-1 text-sm text-muted">Pick an existing project or create one on the fly.</p>
 
             <div className="mt-4 space-y-3">
-              <label className="block">
+              <div className="block">
                 <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted">Client</span>
-                <input
-                  list="client-options"
-                  type="text"
+                <ComboBox
+                  options={clients.map((client): ComboBoxOption => ({
+                    id: client.id,
+                    label: client.name
+                  }))}
                   value={quickClient}
-                  onChange={(event) => setQuickClient(event.target.value)}
-                  placeholder="Pick existing or create new"
-                  className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-black/30"
+                  onChange={setQuickClient}
+                  placeholder="Type to search or create..."
+                  allowCreate
+                  createLabel="Add new client"
+                  autoFocus
                 />
-                <datalist id="client-options">
-                  {clients.map((client) => (
-                    <option key={client.id} value={client.name} />
-                  ))}
-                </datalist>
-              </label>
-              <label className="block">
+              </div>
+              <div className="block">
                 <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted">Project</span>
-                <input
-                  list="project-options"
-                  type="text"
+                <ComboBox
+                  options={filteredProjects.map((project): ComboBoxOption => ({
+                    id: project.id,
+                    label: project.name
+                  }))}
                   value={quickProject}
-                  onChange={(event) => setQuickProject(event.target.value)}
-                  placeholder="Pick existing or create new"
-                  className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-black/30"
+                  onChange={setQuickProject}
+                  placeholder="Type to search or create..."
+                  allowCreate
+                  createLabel="Add new project"
                 />
-                <datalist id="project-options">
-                  {filteredProjects.map((project) => (
-                    <option key={project.id} value={project.name} />
-                  ))}
-                </datalist>
-              </label>
+              </div>
               <label className="block">
                 <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted">
                   Tags (optional)
@@ -1249,33 +1247,42 @@ export function WeekGrid() {
             </p>
 
             <div className="mt-4 space-y-3">
-              <label className="block">
+              <div className="block">
                 <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted">Client</span>
-                <input
-                  list="draft-client-options"
-                  type="text"
+                <ComboBox
+                  options={clients.map((client): ComboBoxOption => ({
+                    id: client.id,
+                    label: client.name
+                  }))}
                   value={draftCreateClient}
-                  onChange={(event) => setDraftCreateClient(event.target.value)}
-                  placeholder="Select existing or create new"
-                  className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-black/30"
+                  onChange={setDraftCreateClient}
+                  placeholder="Type to search or create..."
+                  allowCreate
+                  createLabel="Add new client"
+                  autoFocus
                 />
-                <datalist id="draft-client-options">
-                  {clients.map((client) => (
-                    <option key={client.id} value={client.name} />
-                  ))}
-                </datalist>
-              </label>
+              </div>
 
-              <label className="block">
+              <div className="block">
                 <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted">Project</span>
-                <input
-                  type="text"
+                <ComboBox
+                  options={projects
+                    .filter((p) => {
+                      if (!draftCreateClient.trim()) return true;
+                      const client = clients.find((c) => c.name.toLowerCase() === draftCreateClient.trim().toLowerCase());
+                      return client ? p.clientId === client.id : true;
+                    })
+                    .map((project): ComboBoxOption => ({
+                      id: project.id,
+                      label: project.name
+                    }))}
                   value={draftCreateProject}
-                  onChange={(event) => setDraftCreateProject(event.target.value)}
-                  placeholder="New project name"
-                  className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-black/30"
+                  onChange={setDraftCreateProject}
+                  placeholder="Type to search or create..."
+                  allowCreate
+                  createLabel="Add new project"
                 />
-              </label>
+              </div>
             </div>
 
             <div className="mt-5 flex gap-2">
