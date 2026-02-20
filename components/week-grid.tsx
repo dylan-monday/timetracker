@@ -541,6 +541,24 @@ export function WeekGrid() {
         projectName: quickProject
       });
 
+      // Add new client to local state if it doesn't exist
+      setClients((current) => {
+        if (current.some((c) => c.id === project.clientId)) return current;
+        return [...current, { id: project.clientId, name: project.clientName, kind: "external" as const }]
+          .sort((a, b) => a.name.localeCompare(b.name));
+      });
+
+      // Add new project to local state if it doesn't exist
+      setProjects((current) => {
+        if (current.some((p) => p.id === project.id)) return current;
+        return [...current, {
+          id: project.id,
+          name: project.name,
+          clientId: project.clientId,
+          clientName: project.clientName
+        }].sort((a, b) => `${a.clientName} ${a.name}`.localeCompare(`${b.clientName} ${b.name}`));
+      });
+
       setLines((current) => {
         const exists = current.some((line) => line.projectId === project.id);
         if (exists) {
@@ -595,7 +613,10 @@ export function WeekGrid() {
       }
       setQuickTags("");
       setShowQuickAdd(false);
-      await refreshWeekData();
+      // Note: We don't call refreshWeekData() here because:
+      // 1. The optimistic update already added the line to state
+      // 2. refreshWeekData uses stale pinnedProjectIds from closure
+      // 3. The new project is already in clients/projects from ensureClientAndProject
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not add line.");
     } finally {
