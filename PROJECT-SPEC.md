@@ -27,9 +27,11 @@ Current UX direction:
 - Manual input accepts shorthand (`1.5`, `1h 30m`, `90m`).
 - **Draggable rows**: Entire rows can be dragged to reorder. Order persists in localStorage.
 - Quick Add line supports:
-  - selecting existing client + project
-  - creating new client/project inline
-  - free-text tags with autocomplete from prior tags
+  - **Combobox autocomplete**: Type to filter existing clients/projects with dropdown suggestions
+  - Create new client/project inline (shows "+ Add new..." option when no match)
+  - Project dropdown filters by selected client
+  - Keyboard navigation (arrows, Enter, Escape)
+  - Free-text tags with autocomplete from prior tags
 - Line delete supports confirmation.
 - Week line pinning allows showing active lines even before entries are added.
 - Mobile day navigator supports:
@@ -279,6 +281,7 @@ Notes:
 | Area | Files |
 |------|-------|
 | Week grid (mobile + desktop) | `components/week-grid.tsx` |
+| Combobox autocomplete | `components/combobox.tsx` |
 | Trends page | `app/trends/page.tsx` |
 | Settings/Admin | `app/admin/page.tsx` |
 | App shell + nav | `components/app-shell.tsx` |
