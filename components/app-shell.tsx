@@ -8,7 +8,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { AmbientMotion } from "@/components/ambient-motion";
 import { UserPill } from "@/components/user-pill";
-import { playSound } from "@/lib/sounds";
+import { playSound, type SoundName } from "@/lib/sounds";
 
 interface AppShellProps {
   title: string;
@@ -16,10 +16,10 @@ interface AppShellProps {
   children: ReactNode;
 }
 
-const navItems = [
-  { href: "/week", label: "Week", icon: CalendarRange },
-  { href: "/trends", label: "Trends", icon: ChartColumn },
-  { href: "/admin", label: "Settings", icon: Shield }
+const navItems: Array<{ href: string; label: string; icon: typeof CalendarRange; sound: SoundName }> = [
+  { href: "/week", label: "Week", icon: CalendarRange, sound: "navWeek" },
+  { href: "/trends", label: "Trends", icon: ChartColumn, sound: "navTrends" },
+  { href: "/admin", label: "Settings", icon: Shield, sound: "navSettings" }
 ];
 
 export function AppShell({ title, subtitle, children }: AppShellProps) {
@@ -51,7 +51,7 @@ export function AppShell({ title, subtitle, children }: AppShellProps) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={() => !isActive && playSound("navigate")}
+                  onClick={() => !isActive && playSound(item.sound)}
                   className={clsx(
                     "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition-all duration-200",
                     isActive

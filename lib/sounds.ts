@@ -145,8 +145,17 @@ export const sounds = {
   // Warm mid bell - for successful saves, confirmations
   save: () => playBell({ frequency: 294, duration: 2.5, volume: 0.10, warmth: 0.7 }), // D4
 
-  // Soft low bell - for navigation, selections
+  // Soft low bell - generic navigation/selections
   navigate: () => playBell({ frequency: 220, duration: 2.0, volume: 0.08, warmth: 0.5 }), // A3
+
+  // Navigation: Week - grounded, present (where you work)
+  navWeek: () => playBell({ frequency: 196, duration: 2.2, volume: 0.09, warmth: 0.6 }), // G3
+
+  // Navigation: Trends - slightly higher, reflective (looking at patterns)
+  navTrends: () => playBell({ frequency: 262, duration: 2.4, volume: 0.08, warmth: 0.7 }), // C4
+
+  // Navigation: Settings - neutral, practical
+  navSettings: () => playBell({ frequency: 175, duration: 1.8, volume: 0.07, warmth: 0.4 }), // F3
 
   // Deep resonant bell - for adding new items
   add: () => playBell({ frequency: 175, duration: 3.0, volume: 0.11, warmth: 0.8 }), // F3
@@ -179,8 +188,11 @@ export function setSoundEnabled(enabled: boolean): void {
   window.localStorage.setItem(SOUND_ENABLED_KEY, String(enabled));
 }
 
+// Type for sound names
+export type SoundName = keyof typeof sounds;
+
 // Play sound only if enabled
-export function playSound(sound: keyof typeof sounds): void {
+export function playSound(sound: SoundName): void {
   if (isSoundEnabled()) {
     sounds[sound]();
   }
