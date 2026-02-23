@@ -1,5 +1,6 @@
-// Deep crystalline bell sounds using Web Audio API
+// Warm, organic bell sounds using Web Audio API
 // Inspired by Björk's "Frosti" - soft, resonant, contemplative
+// With subtle detuning and harmonic complexity for warmth
 
 let audioContext: AudioContext | null = null;
 
@@ -17,7 +18,7 @@ interface BellOptions {
   frequency?: number;
   duration?: number;
   volume?: number;
-  detune?: number;
+  warmth?: number; // 0-1, adds detuning and harmonics
 }
 
 function playBell(options: BellOptions = {}): void {
@@ -30,89 +31,137 @@ function playBell(options: BellOptions = {}): void {
   }
 
   const {
-    frequency = 440,
-    duration = 2.5,
-    volume = 0.12,
-    detune = 0
+    frequency = 220,
+    duration = 3.0,
+    volume = 0.11,
+    warmth = 0.6
   } = options;
 
   const now = ctx.currentTime;
 
-  // Main bell tone
-  const osc1 = ctx.createOscillator();
-  const gain1 = ctx.createGain();
-  osc1.type = "sine";
-  osc1.frequency.value = frequency;
-  osc1.detune.value = detune;
+  // Slight random detune for organic feel (different each strike)
+  const drift = (Math.random() - 0.5) * 4 * warmth;
 
-  // Soft attack, long decay (bell-like envelope)
+  // Main bell tone - slightly detuned pair for warmth
+  const osc1a = ctx.createOscillator();
+  const osc1b = ctx.createOscillator();
+  const gain1 = ctx.createGain();
+
+  osc1a.type = "sine";
+  osc1a.frequency.value = frequency;
+  osc1a.detune.value = drift - 3 * warmth;
+
+  osc1b.type = "sine";
+  osc1b.frequency.value = frequency;
+  osc1b.detune.value = drift + 3 * warmth;
+
+  // Soft attack, long decay with slight pitch drop (cooling metal)
   gain1.gain.setValueAtTime(0, now);
-  gain1.gain.linearRampToValueAtTime(volume, now + 0.008);
-  gain1.gain.exponentialRampToValueAtTime(volume * 0.6, now + 0.15);
+  gain1.gain.linearRampToValueAtTime(volume, now + 0.012);
+  gain1.gain.exponentialRampToValueAtTime(volume * 0.5, now + 0.2);
   gain1.gain.exponentialRampToValueAtTime(0.001, now + duration);
 
-  osc1.connect(gain1);
+  // Subtle pitch drift down during decay
+  osc1a.frequency.setValueAtTime(frequency, now);
+  osc1a.frequency.exponentialRampToValueAtTime(frequency * 0.995, now + duration);
+  osc1b.frequency.setValueAtTime(frequency, now);
+  osc1b.frequency.exponentialRampToValueAtTime(frequency * 0.993, now + duration);
+
+  osc1a.connect(gain1);
+  osc1b.connect(gain1);
   gain1.connect(ctx.destination);
 
-  osc1.start(now);
-  osc1.stop(now + duration);
+  osc1a.start(now);
+  osc1b.start(now);
+  osc1a.stop(now + duration);
+  osc1b.stop(now + duration);
 
-  // First overtone (octave + fifth, quieter)
-  const osc2 = ctx.createOscillator();
+  // Second harmonic (octave) - detuned pair
+  const osc2a = ctx.createOscillator();
+  const osc2b = ctx.createOscillator();
   const gain2 = ctx.createGain();
-  osc2.type = "sine";
-  osc2.frequency.value = frequency * 3; // Third harmonic
-  osc2.detune.value = detune + 2; // Slight shimmer
+
+  osc2a.type = "sine";
+  osc2a.frequency.value = frequency * 2;
+  osc2a.detune.value = drift + 5 * warmth;
+
+  osc2b.type = "sine";
+  osc2b.frequency.value = frequency * 2;
+  osc2b.detune.value = drift - 4 * warmth;
 
   gain2.gain.setValueAtTime(0, now);
-  gain2.gain.linearRampToValueAtTime(volume * 0.15, now + 0.004);
-  gain2.gain.exponentialRampToValueAtTime(0.001, now + duration * 0.5);
+  gain2.gain.linearRampToValueAtTime(volume * 0.18, now + 0.006);
+  gain2.gain.exponentialRampToValueAtTime(0.001, now + duration * 0.6);
 
-  osc2.connect(gain2);
+  osc2a.connect(gain2);
+  osc2b.connect(gain2);
   gain2.connect(ctx.destination);
 
-  osc2.start(now);
-  osc2.stop(now + duration * 0.5);
+  osc2a.start(now);
+  osc2b.start(now);
+  osc2a.stop(now + duration * 0.6);
+  osc2b.stop(now + duration * 0.6);
 
-  // Sub-bass undertone for depth
+  // Sub undertone for depth and warmth
   const osc3 = ctx.createOscillator();
   const gain3 = ctx.createGain();
   osc3.type = "sine";
-  osc3.frequency.value = frequency * 0.5; // Octave below
+  osc3.frequency.value = frequency * 0.5;
+  osc3.detune.value = drift * 0.5;
 
   gain3.gain.setValueAtTime(0, now);
-  gain3.gain.linearRampToValueAtTime(volume * 0.25, now + 0.02);
-  gain3.gain.exponentialRampToValueAtTime(0.001, now + duration * 0.8);
+  gain3.gain.linearRampToValueAtTime(volume * 0.3, now + 0.025);
+  gain3.gain.exponentialRampToValueAtTime(0.001, now + duration * 0.9);
 
   osc3.connect(gain3);
   gain3.connect(ctx.destination);
 
   osc3.start(now);
-  osc3.stop(now + duration * 0.8);
+  osc3.stop(now + duration * 0.9);
+
+  // Touch of fifth harmonic for shimmer (very quiet)
+  if (warmth > 0.3) {
+    const osc4 = ctx.createOscillator();
+    const gain4 = ctx.createGain();
+    osc4.type = "sine";
+    osc4.frequency.value = frequency * 3;
+    osc4.detune.value = drift + 8;
+
+    gain4.gain.setValueAtTime(0, now);
+    gain4.gain.linearRampToValueAtTime(volume * 0.06 * warmth, now + 0.003);
+    gain4.gain.exponentialRampToValueAtTime(0.001, now + duration * 0.3);
+
+    osc4.connect(gain4);
+    gain4.connect(ctx.destination);
+
+    osc4.start(now);
+    osc4.stop(now + duration * 0.3);
+  }
 }
 
 // Preset sounds for different interactions
+// Lower pitches, warmer character
 export const sounds = {
-  // Soft high bell - for successful saves, confirmations
-  save: () => playBell({ frequency: 698, duration: 2.0, volume: 0.10 }), // F5
+  // Warm mid bell - for successful saves, confirmations
+  save: () => playBell({ frequency: 294, duration: 2.5, volume: 0.10, warmth: 0.7 }), // D4
 
-  // Medium warm bell - for navigation, selections
-  navigate: () => playBell({ frequency: 523, duration: 1.5, volume: 0.08 }), // C5
+  // Soft low bell - for navigation, selections
+  navigate: () => playBell({ frequency: 220, duration: 2.0, volume: 0.08, warmth: 0.5 }), // A3
 
   // Deep resonant bell - for adding new items
-  add: () => playBell({ frequency: 349, duration: 2.5, volume: 0.12 }), // F4
+  add: () => playBell({ frequency: 175, duration: 3.0, volume: 0.11, warmth: 0.8 }), // F3
 
   // Two-note chime - for completing/checking items
   complete: () => {
-    playBell({ frequency: 523, duration: 1.8, volume: 0.08 }); // C5
-    setTimeout(() => playBell({ frequency: 659, duration: 2.0, volume: 0.09 }), 120); // E5
+    playBell({ frequency: 262, duration: 2.2, volume: 0.08, warmth: 0.6 }); // C4
+    setTimeout(() => playBell({ frequency: 330, duration: 2.5, volume: 0.09, warmth: 0.7 }), 150); // E4
   },
 
   // Gentle low tone - for closing/dismissing
-  close: () => playBell({ frequency: 262, duration: 1.2, volume: 0.06, detune: -5 }), // C4
+  close: () => playBell({ frequency: 147, duration: 1.8, volume: 0.07, warmth: 0.4 }), // D3
 
-  // Soft error/warning - slightly dissonant
-  error: () => playBell({ frequency: 311, duration: 1.5, volume: 0.08, detune: 15 }), // Eb4 slightly sharp
+  // Soft error/warning - slightly darker
+  error: () => playBell({ frequency: 156, duration: 2.0, volume: 0.08, warmth: 0.3 }), // Eb3
 };
 
 // Sound preference (persisted in localStorage)
