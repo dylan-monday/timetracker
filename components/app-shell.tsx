@@ -8,6 +8,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { AmbientMotion } from "@/components/ambient-motion";
 import { UserPill } from "@/components/user-pill";
+import { playSound } from "@/lib/sounds";
 
 interface AppShellProps {
   title: string;
@@ -50,11 +51,12 @@ export function AppShell({ title, subtitle, children }: AppShellProps) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={() => !isActive && playSound("navigate")}
                   className={clsx(
-                    "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition",
+                    "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition-all duration-200",
                     isActive
                       ? "bg-white text-ink shadow-[0_1px_0_rgba(0,0,0,0.08)]"
-                      : "text-muted hover:bg-black/5 hover:text-ink"
+                      : "text-muted hover:bg-black/5 hover:text-ink hover:scale-[1.02] active:scale-[0.98]"
                   )}
                 >
                   <Icon className="h-4 w-4" />

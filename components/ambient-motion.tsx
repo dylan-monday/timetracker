@@ -19,37 +19,37 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 // Time period color palettes
 // Each has 3 gradient colors: primary, secondary, tertiary
-// Colors are more saturated for visibility while remaining tasteful
+// More saturated and pronounced for that dreamy, Frosti-like atmosphere
 const TIME_PALETTES = {
-  // Morning (6am-11am): Cool, crisp - sky blues, teals, soft lavender
+  // Morning (6am-11am): Ethereal dawn - rich sky blue, deep teal, lavender mist
   morning: {
-    primary: { r: 130, g: 190, b: 235 },    // clear sky blue
-    secondary: { r: 100, g: 195, b: 180 },  // teal
-    tertiary: { r: 200, g: 195, b: 230 },   // soft lavender
+    primary: { r: 90, g: 170, b: 230 },     // rich sky blue
+    secondary: { r: 60, g: 185, b: 175 },   // deep teal
+    tertiary: { r: 185, g: 175, b: 225 },   // lavender mist
   },
-  // Midday (11am-2pm): Bright energy - warm gold, sage green, soft coral
+  // Midday (11am-2pm): Warm presence - golden amber, forest sage, coral bloom
   midday: {
-    primary: { r: 245, g: 220, b: 150 },    // warm gold
-    secondary: { r: 160, g: 200, b: 160 },  // sage green
-    tertiary: { r: 250, g: 200, b: 180 },   // soft coral
+    primary: { r: 250, g: 200, b: 100 },    // golden amber
+    secondary: { r: 120, g: 185, b: 130 },  // forest sage
+    tertiary: { r: 255, g: 175, b: 150 },   // coral bloom
   },
-  // Afternoon (2pm-5pm): Warm focus - amber, terracotta, golden wheat
+  // Afternoon (2pm-5pm): Honeyed light - deep amber, warm terracotta, wheat gold
   afternoon: {
-    primary: { r: 240, g: 180, b: 120 },    // amber
-    secondary: { r: 210, g: 160, b: 145 },  // terracotta
-    tertiary: { r: 235, g: 205, b: 140 },   // golden wheat
+    primary: { r: 245, g: 160, b: 80 },     // deep amber
+    secondary: { r: 210, g: 140, b: 120 },  // warm terracotta
+    tertiary: { r: 240, g: 195, b: 100 },   // wheat gold
   },
-  // Evening (5pm-9pm): Golden hour - peach, dusty rose, warm mauve
+  // Evening (5pm-9pm): Golden hour glow - sunset peach, rose, dusty mauve
   evening: {
-    primary: { r: 250, g: 175, b: 130 },    // warm peach
-    secondary: { r: 225, g: 160, b: 170 },  // dusty rose
-    tertiary: { r: 200, g: 170, b: 190 },   // warm mauve
+    primary: { r: 255, g: 155, b: 100 },    // sunset peach
+    secondary: { r: 230, g: 140, b: 160 },  // rose
+    tertiary: { r: 190, g: 155, b: 185 },   // dusty mauve
   },
-  // Night (9pm-6am): Cool calm - deep blue, slate purple, indigo
+  // Night (9pm-6am): Deep contemplation - midnight blue, violet, soft indigo
   night: {
-    primary: { r: 120, g: 150, b: 195 },    // deep blue
-    secondary: { r: 150, g: 140, b: 180 },  // slate purple
-    tertiary: { r: 130, g: 130, b: 175 },   // indigo
+    primary: { r: 90, g: 130, b: 190 },     // midnight blue
+    secondary: { r: 140, g: 120, b: 180 },  // violet
+    tertiary: { r: 110, g: 115, b: 175 },   // soft indigo
   },
 } as const;
 
@@ -163,26 +163,27 @@ export function AmbientMotion() {
     // Build the gradient string
     // Using multiple radial gradients layered on top of each other
     // Each gradient is positioned at a different point and drifts slowly
+    // More pronounced alphas for that dreamy, immersive feel
     const gradient = `
       radial-gradient(
-        ellipse 80% 70% at ${positions.p1.x}% ${positions.p1.y}%,
-        ${rgbaString(colors.primary, 0.55)} 0%,
-        ${rgbaString(colors.primary, 0.25)} 35%,
+        ellipse 85% 75% at ${positions.p1.x}% ${positions.p1.y}%,
+        ${rgbaString(colors.primary, 0.7)} 0%,
+        ${rgbaString(colors.primary, 0.35)} 30%,
+        transparent 60%
+      ),
+      radial-gradient(
+        ellipse 75% 85% at ${positions.p2.x}% ${positions.p2.y}%,
+        ${rgbaString(colors.secondary, 0.65)} 0%,
+        ${rgbaString(colors.secondary, 0.3)} 35%,
         transparent 65%
       ),
       radial-gradient(
-        ellipse 70% 80% at ${positions.p2.x}% ${positions.p2.y}%,
-        ${rgbaString(colors.secondary, 0.5)} 0%,
-        ${rgbaString(colors.secondary, 0.2)} 40%,
+        ellipse 95% 65% at ${positions.p3.x}% ${positions.p3.y}%,
+        ${rgbaString(colors.tertiary, 0.6)} 0%,
+        ${rgbaString(colors.tertiary, 0.25)} 40%,
         transparent 70%
       ),
-      radial-gradient(
-        ellipse 90% 60% at ${positions.p3.x}% ${positions.p3.y}%,
-        ${rgbaString(colors.tertiary, 0.45)} 0%,
-        ${rgbaString(colors.tertiary, 0.18)} 45%,
-        transparent 75%
-      ),
-      linear-gradient(to bottom, #f5f6f3 0%, #f5f6f3 100%)
+      linear-gradient(to bottom, #f8f9f6 0%, #f5f6f3 100%)
     `;
 
     containerRef.current.style.background = gradient;

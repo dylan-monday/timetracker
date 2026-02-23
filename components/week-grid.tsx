@@ -17,6 +17,7 @@ import {
   upsertDailyManualEntry
 } from "@/lib/supabase/week";
 import { minutesToDisplay, parseAndRoundTimeInput } from "@/lib/time";
+import { playSound } from "@/lib/sounds";
 import type { ClientOption, DraftEntry, ProjectOption, WeekLine } from "@/lib/types";
 
 const BUSINESS_DAY_INDEXES = [1, 2, 3, 4, 5];
@@ -468,6 +469,7 @@ export function WeekGrid() {
 
       // Show saved confirmation briefly
       setSavedCell(cellToSave);
+      playSound("save");
       setTimeout(() => {
         setSavedCell((current) =>
           current?.lineId === cellToSave.lineId && current?.dayIndex === cellToSave.dayIndex
@@ -559,6 +561,7 @@ export function WeekGrid() {
 
         // Mark this line as new for animation
         setNewLineIds((prev) => new Set(prev).add(newLineId));
+        playSound("add");
         // Remove from new lines set after animation completes
         setTimeout(() => {
           setNewLineIds((prev) => {
@@ -627,9 +630,11 @@ export function WeekGrid() {
 
     try {
       await approveDraftEntry({ supabase, entryId, projectId });
+      playSound("complete");
       await refreshWeekData();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not approve draft entry.");
+      playSound("error");
     } finally {
       setDraftActionId(null);
     }
@@ -642,9 +647,11 @@ export function WeekGrid() {
 
     try {
       await rejectDraftEntry({ supabase, entryId });
+      playSound("close");
       await refreshWeekData();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not reject draft entry.");
+      playSound("error");
     } finally {
       setDraftActionId(null);
     }
@@ -1111,8 +1118,8 @@ export function WeekGrid() {
         <div className="mt-4 flex flex-wrap gap-2">
           <button
             type="button"
-            className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium"
-            onClick={() => setShowQuickAdd(true)}
+            className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium transition-all duration-200 hover:scale-[1.02] hover:shadow-md active:scale-[0.98]"
+            onClick={() => { playSound("navigate"); setShowQuickAdd(true); }}
           >
             <Plus className="h-4 w-4" />
             Add line
@@ -1130,7 +1137,7 @@ export function WeekGrid() {
       {showQuickAdd ? (
         <div
           className="fixed inset-0 z-20 bg-black/18 backdrop-blur-[1px]"
-          onClick={() => setShowQuickAdd(false)}
+          onClick={() => { playSound("close"); setShowQuickAdd(false); }}
         >
           <aside
             className="fixed inset-x-0 bottom-0 z-30 rounded-t-3xl border border-black/10 bg-panel p-4 shadow-[0_-20px_50px_rgba(0,0,0,0.14)] sm:inset-x-auto sm:left-1/2 sm:mx-auto sm:mb-6 sm:w-full sm:max-w-xl sm:-translate-x-1/2 sm:rounded-3xl"
@@ -1174,14 +1181,14 @@ export function WeekGrid() {
             <div className="mt-5 flex gap-2">
               <button
                 type="button"
-                className="flex-1 rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium"
-                onClick={() => setShowQuickAdd(false)}
+                className="flex-1 rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                onClick={() => { playSound("close"); setShowQuickAdd(false); }}
               >
                 Close
               </button>
               <button
                 type="button"
-                className="flex-1 rounded-full bg-ink px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                className="flex-1 rounded-full bg-ink px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
                 onClick={() => {
                   void handleQuickAddSave();
                 }}
