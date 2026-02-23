@@ -55,7 +55,19 @@ Current UX direction:
 - Time-based ambient background:
   - Background colors shift based on local time of day (morning/midday/afternoon/evening/night)
   - Gradients slowly drift position over 30-60 second cycles
+  - Saturated, dreamy color palette for immersive feel
   - Debug mode available via `?debug-bg=1` query param
+- **UI Sound design** (Frosti-inspired warm bells):
+  - Web Audio API synthesized tones, no audio files
+  - Detuned oscillator pairs for organic shimmer
+  - Subtle pitch drift during decay (cooling metal feel)
+  - Distinct tones per navigation destination (Week=G3, Trends=C4, Settings=F3)
+  - Sounds: save, add, complete, close, error, navigate
+  - Enabled by default, preference stored in localStorage
+  - Source: `lib/sounds.ts`
+- **Micro-interactions**:
+  - Buttons scale 1.02x on hover, 0.98x on press
+  - 200ms easing for tactile feedback
 
 ### Calendar Drafts Inbox
 - Calendar imports create `draft` entries, not auto-approved final entries.
@@ -287,6 +299,7 @@ Notes:
 | App shell + nav | `components/app-shell.tsx` |
 | Auth gate | `components/auth-gate.tsx` |
 | Ambient background | `components/ambient-motion.tsx` |
+| UI sounds | `lib/sounds.ts` |
 | Footer messages | `lib/footer-messages.ts`, `content/footer-messages.md` |
 | Color/typography config | `tailwind.config.ts`, `app/globals.css` |
 | Font setup | `app/layout.tsx` |
