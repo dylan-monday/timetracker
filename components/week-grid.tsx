@@ -526,7 +526,10 @@ export function WeekGrid() {
   }, [savedQuickTags]);
 
   const handleQuickAddSave = async () => {
+    console.log("[QuickAdd] Starting save", { quickClient, quickProject, user: !!user, supabase: !!supabase });
+
     if (!user || !supabase || !quickClient.trim() || !quickProject.trim()) {
+      console.log("[QuickAdd] Early return - missing required data");
       return;
     }
 
@@ -534,12 +537,14 @@ export function WeekGrid() {
     setError(null);
 
     try {
+      console.log("[QuickAdd] Calling ensureClientAndProject...");
       const project = await ensureClientAndProject({
         supabase,
         userId: user.id,
         clientName: quickClient,
         projectName: quickProject
       });
+      console.log("[QuickAdd] Got project:", project);
 
       // Add new client to local state if it doesn't exist
       setClients((current) => {
@@ -562,16 +567,18 @@ export function WeekGrid() {
       // Check if line already exists before state update
       const existingLineForProject = lines.some((line) => line.projectId === project.id);
       const newLineId = `line-${project.id}`;
+      console.log("[QuickAdd] Line exists?", existingLineForProject, "newLineId:", newLineId, "current lines:", lines.length);
 
       // Update lines state (pure function, no side effects)
       setLines((current) => {
         // Double-check in case state changed
         const exists = current.some((line) => line.projectId === project.id);
+        console.log("[QuickAdd] Inside setLines - exists?", exists, "current length:", current.length);
         if (exists) {
           return current;
         }
 
-        return [
+        const newLines = [
           ...current,
           {
             id: newLineId,
@@ -583,10 +590,13 @@ export function WeekGrid() {
             isDraft: false
           }
         ];
+        console.log("[QuickAdd] Returning new lines array, length:", newLines.length);
+        return newLines;
       });
 
       // Handle side effects OUTSIDE the setLines callback
       if (!existingLineForProject) {
+        console.log("[QuickAdd] Adding to pinned and setting animation");
         // Update pinned IDs
         savePinnedProjectIds([...pinnedProjectIds, project.id]);
 
@@ -601,10 +611,12 @@ export function WeekGrid() {
           });
         }, 800);
       } else if (!pinnedProjectIds.includes(project.id)) {
+        console.log("[QuickAdd] Line exists, just pinning");
         // Line exists but not pinned - just pin it
         savePinnedProjectIds([...pinnedProjectIds, project.id]);
       }
 
+      console.log("[QuickAdd] Save complete, closing modal");
       setQuickClient("");
       setQuickProject("");
       const parsedTags = quickTags
