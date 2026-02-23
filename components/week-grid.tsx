@@ -23,7 +23,6 @@ const BUSINESS_DAY_INDEXES = [1, 2, 3, 4, 5];
 const ALL_DAY_INDEXES = [1, 2, 3, 4, 5, 6, 7];
 const WEEK_LINE_STORAGE_PREFIX = "mp-time-week-lines";
 const LINE_ORDER_STORAGE_KEY = "mp-time-line-order";
-const QUICK_TAG_STORAGE_KEY = "mp-time-quick-tags";
 
 // Pill styling for daily totals with subtle color gradation based on hours logged
 // No words, no judgments — just a gentle visual shift
@@ -155,8 +154,6 @@ export function WeekGrid() {
 
   const [quickClient, setQuickClient] = useState("");
   const [quickProject, setQuickProject] = useState("");
-  const [quickTags, setQuickTags] = useState("");
-  const [savedQuickTags, setSavedQuickTags] = useState<string[]>([]);
   const [showDraftCreateModal, setShowDraftCreateModal] = useState(false);
   const [draftCreateEntryId, setDraftCreateEntryId] = useState<string | null>(null);
   const [draftCreateClient, setDraftCreateClient] = useState("");
@@ -228,26 +225,6 @@ export function WeekGrid() {
       setMobileDayIndex(visibleDayIndexes.includes(todayDayIndex) ? todayDayIndex : visibleDayIndexes[0]);
     }
   }, [mobileDayIndex, todayDayIndex, visibleDayIndexes]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const raw = window.localStorage.getItem(QUICK_TAG_STORAGE_KEY);
-    if (!raw) return;
-
-    try {
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return;
-
-      setSavedQuickTags(
-        parsed
-          .filter((tag): tag is string => typeof tag === "string")
-          .map((tag) => tag.trim())
-          .filter(Boolean)
-      );
-    } catch {
-      setSavedQuickTags([]);
-    }
-  }, []);
 
   // Load line order from localStorage
   useEffect(() => {
@@ -515,21 +492,8 @@ export function WeekGrid() {
     return projects.filter((project) => project.clientId === client.id);
   }, [clients, projects, quickClient]);
 
-  const quickTagSuggestions = useMemo(() => {
-    const seen = new Set<string>();
-    return savedQuickTags.filter((tag) => {
-      const key = tag.toLowerCase();
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-  }, [savedQuickTags]);
-
   const handleQuickAddSave = async () => {
-    console.log("[QuickAdd] Starting save", { quickClient, quickProject, user: !!user, supabase: !!supabase });
-
     if (!user || !supabase || !quickClient.trim() || !quickProject.trim()) {
-      console.log("[QuickAdd] Early return - missing required data");
       return;
     }
 
@@ -537,14 +501,12 @@ export function WeekGrid() {
     setError(null);
 
     try {
-      console.log("[QuickAdd] Calling ensureClientAndProject...");
       const project = await ensureClientAndProject({
         supabase,
         userId: user.id,
         clientName: quickClient,
         projectName: quickProject
       });
-      console.log("[QuickAdd] Got project:", project);
 
       // Add new client to local state if it doesn't exist
       setClients((current) => {
@@ -567,18 +529,16 @@ export function WeekGrid() {
       // Check if line already exists before state update
       const existingLineForProject = lines.some((line) => line.projectId === project.id);
       const newLineId = `line-${project.id}`;
-      console.log("[QuickAdd] Line exists?", existingLineForProject, "newLineId:", newLineId, "current lines:", lines.length);
 
       // Update lines state (pure function, no side effects)
       setLines((current) => {
         // Double-check in case state changed
         const exists = current.some((line) => line.projectId === project.id);
-        console.log("[QuickAdd] Inside setLines - exists?", exists, "current length:", current.length);
         if (exists) {
           return current;
         }
 
-        const newLines = [
+        return [
           ...current,
           {
             id: newLineId,
@@ -590,13 +550,10 @@ export function WeekGrid() {
             isDraft: false
           }
         ];
-        console.log("[QuickAdd] Returning new lines array, length:", newLines.length);
-        return newLines;
       });
 
       // Handle side effects OUTSIDE the setLines callback
       if (!existingLineForProject) {
-        console.log("[QuickAdd] Adding to pinned and setting animation");
         // Update pinned IDs
         savePinnedProjectIds([...pinnedProjectIds, project.id]);
 
@@ -611,28 +568,12 @@ export function WeekGrid() {
           });
         }, 800);
       } else if (!pinnedProjectIds.includes(project.id)) {
-        console.log("[QuickAdd] Line exists, just pinning");
         // Line exists but not pinned - just pin it
         savePinnedProjectIds([...pinnedProjectIds, project.id]);
       }
 
-      console.log("[QuickAdd] Save complete, closing modal");
       setQuickClient("");
       setQuickProject("");
-      const parsedTags = quickTags
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter(Boolean);
-      if (parsedTags.length) {
-        const nextSavedTags = [...parsedTags, ...savedQuickTags]
-          .filter((tag, index, all) => all.findIndex((item) => item.toLowerCase() === tag.toLowerCase()) === index)
-          .slice(0, 40);
-        setSavedQuickTags(nextSavedTags);
-        if (typeof window !== "undefined") {
-          window.localStorage.setItem(QUICK_TAG_STORAGE_KEY, JSON.stringify(nextSavedTags));
-        }
-      }
-      setQuickTags("");
       setShowQuickAdd(false);
       // Note: We don't call refreshWeekData() here because:
       // 1. The optimistic update already added the line to state
@@ -1228,24 +1169,6 @@ export function WeekGrid() {
                   createLabel="Add new project"
                 />
               </div>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted">
-                  Tags (optional)
-                </span>
-                <input
-                  list="tag-options"
-                  type="text"
-                  value={quickTags}
-                  onChange={(event) => setQuickTags(event.target.value)}
-                  placeholder="strategy, social, production"
-                  className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-black/30"
-                />
-                <datalist id="tag-options">
-                  {quickTagSuggestions.map((tag) => (
-                    <option key={tag} value={tag} />
-                  ))}
-                </datalist>
-              </label>
             </div>
 
             <div className="mt-5 flex gap-2">

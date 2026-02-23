@@ -33,7 +33,7 @@ export function AppShell({ title, subtitle, children }: AppShellProps) {
           <div className="flex items-center gap-3">
             <Link href="/week" aria-label="Go to week view">
               <Image
-                src="/m26-black-simple.svg"
+                src="/m26purple.svg"
                 alt="M+P Time"
                 width={152}
                 height={31}

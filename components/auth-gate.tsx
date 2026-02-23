@@ -30,7 +30,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
         <section className="relative z-10 w-full max-w-xl rounded-[1.6rem] border border-black/10 bg-panel/95 p-8 shadow-[0_20px_80px_rgba(17,19,24,0.12)] backdrop-blur">
           <div className="mb-6 flex justify-center">
-            <Image src="/MP26.svg" alt="M+P Time" width={248} height={52} className="h-11 w-auto sm:h-12" priority />
+            <Image src="/m26purple.svg" alt="M+P Time" width={248} height={52} className="h-11 w-auto sm:h-12" priority />
           </div>
 
           <h1 className="font-display text-center text-5xl tracking-tight text-ink sm:text-6xl">
