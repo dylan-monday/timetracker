@@ -559,28 +559,17 @@ export function WeekGrid() {
         }].sort((a, b) => `${a.clientName} ${a.name}`.localeCompare(`${b.clientName} ${b.name}`));
       });
 
+      // Check if line already exists before state update
+      const existingLineForProject = lines.some((line) => line.projectId === project.id);
+      const newLineId = `line-${project.id}`;
+
+      // Update lines state (pure function, no side effects)
       setLines((current) => {
+        // Double-check in case state changed
         const exists = current.some((line) => line.projectId === project.id);
         if (exists) {
-          if (!pinnedProjectIds.includes(project.id)) {
-            savePinnedProjectIds([...pinnedProjectIds, project.id]);
-          }
           return current;
         }
-
-        savePinnedProjectIds([...pinnedProjectIds, project.id]);
-
-        const newLineId = `line-${project.id}`;
-        // Mark this line as new for animation
-        setNewLineIds((prev) => new Set(prev).add(newLineId));
-        // Remove from new lines set after animation completes
-        setTimeout(() => {
-          setNewLineIds((prev) => {
-            const next = new Set(prev);
-            next.delete(newLineId);
-            return next;
-          });
-        }, 800);
 
         return [
           ...current,
@@ -595,6 +584,26 @@ export function WeekGrid() {
           }
         ];
       });
+
+      // Handle side effects OUTSIDE the setLines callback
+      if (!existingLineForProject) {
+        // Update pinned IDs
+        savePinnedProjectIds([...pinnedProjectIds, project.id]);
+
+        // Mark this line as new for animation
+        setNewLineIds((prev) => new Set(prev).add(newLineId));
+        // Remove from new lines set after animation completes
+        setTimeout(() => {
+          setNewLineIds((prev) => {
+            const next = new Set(prev);
+            next.delete(newLineId);
+            return next;
+          });
+        }, 800);
+      } else if (!pinnedProjectIds.includes(project.id)) {
+        // Line exists but not pinned - just pin it
+        savePinnedProjectIds([...pinnedProjectIds, project.id]);
+      }
 
       setQuickClient("");
       setQuickProject("");
