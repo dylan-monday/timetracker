@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
  * Time-Based Gradient Background
- * Uses CSS animations with soft gradients (no blur filter for iOS compatibility)
+ *
+ * - Animated gradient positions via requestAnimationFrame
+ * - Time-based color palettes
+ * - Respects prefers-reduced-motion
  */
 
 const TIME_PALETTES = {
@@ -50,17 +53,26 @@ function rgbaString(color: ColorRGB, alpha: number): string {
   return `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`;
 }
 
-export function AmbientMotion() {
-  const [colors, setColors] = useState(() => TIME_PALETTES[getTimePeriod(new Date().getHours())]);
-  const [reducedMotion, setReducedMotion] = useState(false);
+interface GradientState {
+  colors: { primary: ColorRGB; secondary: ColorRGB; tertiary: ColorRGB };
+  positions: {
+    p1: { x: number; y: number };
+    p2: { x: number; y: number };
+    p3: { x: number; y: number };
+  };
+}
 
-  useEffect(() => {
-    const updateColors = () => {
-      setColors(TIME_PALETTES[getTimePeriod(new Date().getHours())]);
-    };
-    const interval = setInterval(updateColors, 60000);
-    return () => clearInterval(interval);
-  }, []);
+export function AmbientMotion() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const stateRef = useRef<GradientState>({
+    colors: TIME_PALETTES[getTimePeriod(new Date().getHours())],
+    positions: {
+      p1: { x: 25, y: 20 },
+      p2: { x: 75, y: 30 },
+      p3: { x: 50, y: 80 },
+    },
+  });
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -70,22 +82,72 @@ export function AmbientMotion() {
     return () => mq.removeEventListener("change", handler);
   }, []);
 
-  // Build gradient with very soft edges (no blur needed)
-  const gradient = `
-    radial-gradient(ellipse 120% 100% at 20% 20%, ${rgbaString(colors.primary, 0.5)} 0%, ${rgbaString(colors.primary, 0.2)} 25%, transparent 50%),
-    radial-gradient(ellipse 100% 120% at 80% 30%, ${rgbaString(colors.secondary, 0.45)} 0%, ${rgbaString(colors.secondary, 0.15)} 30%, transparent 55%),
-    radial-gradient(ellipse 130% 90% at 50% 90%, ${rgbaString(colors.tertiary, 0.4)} 0%, ${rgbaString(colors.tertiary, 0.1)} 35%, transparent 60%),
-    linear-gradient(to bottom, #f8f9f6 0%, #f5f6f3 100%)
-  `;
+  const updateGradient = useCallback((state: GradientState) => {
+    if (!containerRef.current) return;
+    const { colors, positions } = state;
+
+    const gradient = `radial-gradient(ellipse 85% 75% at ${positions.p1.x}% ${positions.p1.y}%, ${rgbaString(colors.primary, 0.7)} 0%, ${rgbaString(colors.primary, 0.35)} 30%, transparent 60%), radial-gradient(ellipse 75% 85% at ${positions.p2.x}% ${positions.p2.y}%, ${rgbaString(colors.secondary, 0.65)} 0%, ${rgbaString(colors.secondary, 0.3)} 35%, transparent 65%), radial-gradient(ellipse 95% 65% at ${positions.p3.x}% ${positions.p3.y}%, ${rgbaString(colors.tertiary, 0.6)} 0%, ${rgbaString(colors.tertiary, 0.25)} 40%, transparent 70%), linear-gradient(to bottom, #f8f9f6 0%, #f5f6f3 100%)`;
+
+    containerRef.current.style.background = gradient;
+  }, []);
+
+  useEffect(() => {
+    let rafId = 0;
+    let lastColorUpdate = 0;
+    const startTime = performance.now();
+
+    const tick = (time: number) => {
+      const elapsed = time - startTime;
+
+      // Update colors every 30 seconds
+      if (time - lastColorUpdate > 30000) {
+        const hour = new Date().getHours();
+        stateRef.current.colors = TIME_PALETTES[getTimePeriod(hour)];
+        lastColorUpdate = time;
+      }
+
+      // Animate positions (unless reduced motion)
+      if (!reducedMotion) {
+        const t = elapsed * 0.001; // Convert to seconds for smoother math
+        stateRef.current.positions = {
+          p1: {
+            x: 25 + Math.sin(t * 0.07) * 20 + Math.cos(t * 0.03) * 10,
+            y: 20 + Math.cos(t * 0.05) * 15 + Math.sin(t * 0.04) * 8,
+          },
+          p2: {
+            x: 75 + Math.sin(t * 0.04 + 2) * 18 + Math.cos(t * 0.06) * 12,
+            y: 30 + Math.cos(t * 0.06 + 1) * 20 + Math.sin(t * 0.03) * 10,
+          },
+          p3: {
+            x: 50 + Math.sin(t * 0.05 + 4) * 25 + Math.cos(t * 0.04) * 15,
+            y: 80 + Math.cos(t * 0.04 + 3) * 12 + Math.sin(t * 0.05) * 8,
+          },
+        };
+      }
+
+      updateGradient(stateRef.current);
+      rafId = requestAnimationFrame(tick);
+    };
+
+    // Initial render
+    updateGradient(stateRef.current);
+    rafId = requestAnimationFrame(tick);
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, [reducedMotion, updateGradient]);
+
+  // Initial gradient for SSR/first paint
+  const initialColors = TIME_PALETTES[getTimePeriod(new Date().getHours())];
+  const initialGradient = `radial-gradient(ellipse 85% 75% at 25% 20%, ${rgbaString(initialColors.primary, 0.7)} 0%, ${rgbaString(initialColors.primary, 0.35)} 30%, transparent 60%), radial-gradient(ellipse 75% 85% at 75% 30%, ${rgbaString(initialColors.secondary, 0.65)} 0%, ${rgbaString(initialColors.secondary, 0.3)} 35%, transparent 65%), radial-gradient(ellipse 95% 65% at 50% 80%, ${rgbaString(initialColors.tertiary, 0.6)} 0%, ${rgbaString(initialColors.tertiary, 0.25)} 40%, transparent 70%), linear-gradient(to bottom, #f8f9f6 0%, #f5f6f3 100%)`;
 
   return (
     <div
+      ref={containerRef}
       className="pointer-events-none fixed inset-0 z-0"
       aria-hidden="true"
-      style={{
-        background: gradient,
-        transition: reducedMotion ? "none" : "background 2s ease-in-out",
-      }}
+      style={{ background: initialGradient }}
     />
   );
 }
