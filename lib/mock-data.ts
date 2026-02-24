@@ -9,7 +9,7 @@ export function makeWeekDays(reference = new Date()): WeekDay[] {
     return {
       isoDate: format(date, "yyyy-MM-dd"),
       label: format(date, "EEE"),
-      day: format(date, "d")
+      day: format(date, "M/d")
     };
   });
 }

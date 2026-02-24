@@ -4,6 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { Check, ChevronLeft, ChevronRight, Plus, RefreshCw, Sparkles, Trash2 } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 import { makeWeekDays } from "@/lib/mock-data";
+import { addWeeks, subWeeks, startOfWeek, format, isSameWeek } from "date-fns";
 import { ComboBox, type ComboBoxOption } from "@/components/combobox";
 import {
   approveDraftEntry,
@@ -138,9 +139,53 @@ function formatDraftTimeRange(entry: DraftEntry): string | null {
   return `${weekday}, ${month} ${day} • ${startTime} - ${endTime}`;
 }
 
-export function WeekGrid() {
+interface WeekGridProps {
+  weekStart?: Date;
+  onWeekChange?: (newWeekStart: Date) => void;
+}
+
+export function WeekGrid({ weekStart, onWeekChange }: WeekGridProps) {
   const { session, supabase, user } = useAuth();
-  const weekDays = useMemo(() => makeWeekDays(), []);
+  const weekDays = useMemo(() => makeWeekDays(weekStart), [weekStart]);
+
+  // Week navigation helpers
+  const currentWeekStart = useMemo(() => startOfWeek(new Date(), { weekStartsOn: 1 }), []);
+  const effectiveWeekStart = useMemo(
+    () => weekStart ?? currentWeekStart,
+    [weekStart, currentWeekStart]
+  );
+  const isCurrentWeek = useMemo(
+    () => isSameWeek(effectiveWeekStart, new Date(), { weekStartsOn: 1 }),
+    [effectiveWeekStart]
+  );
+  const weekDateRange = useMemo(() => {
+    const firstDay = weekDays[0];
+    const lastDay = weekDays[6];
+    if (!firstDay || !lastDay) return "";
+    const startDate = new Date(`${firstDay.isoDate}T00:00:00`);
+    const endDate = new Date(`${lastDay.isoDate}T00:00:00`);
+    const startMonth = format(startDate, "MMM d");
+    const endMonth = format(endDate, "MMM d, yyyy");
+    return `${startMonth} – ${endMonth}`;
+  }, [weekDays]);
+
+  const goToPrevWeek = useCallback(() => {
+    if (onWeekChange) {
+      onWeekChange(subWeeks(effectiveWeekStart, 1));
+    }
+  }, [effectiveWeekStart, onWeekChange]);
+
+  const goToNextWeek = useCallback(() => {
+    if (onWeekChange) {
+      onWeekChange(addWeeks(effectiveWeekStart, 1));
+    }
+  }, [effectiveWeekStart, onWeekChange]);
+
+  const goToCurrentWeek = useCallback(() => {
+    if (onWeekChange) {
+      onWeekChange(currentWeekStart);
+    }
+  }, [currentWeekStart, onWeekChange]);
 
   const [showWeekends, setShowWeekends] = useState(false);
   const [lines, setLines] = useState<WeekLine[]>([]);
@@ -376,8 +421,8 @@ export function WeekGrid() {
     try {
       const { clients: dbClients, projects: dbProjects } = await fetchClientsAndProjects(supabase);
       const [dbLines, dbDrafts] = await Promise.all([
-        fetchWeekLines(supabase, dbProjects, pinnedProjectIds),
-        fetchWeekDraftEntries(supabase)
+        fetchWeekLines(supabase, dbProjects, pinnedProjectIds, effectiveWeekStart),
+        fetchWeekDraftEntries(supabase, effectiveWeekStart)
       ]);
 
       setClients(dbClients);
@@ -391,7 +436,7 @@ export function WeekGrid() {
     } finally {
       setLoading(false);
     }
-  }, [pinnedProjectIds, supabase, user]);
+  }, [pinnedProjectIds, supabase, user, effectiveWeekStart]);
 
   useEffect(() => {
     void refreshWeekData();
@@ -841,8 +886,41 @@ export function WeekGrid() {
 
   return (
     <section className="space-y-4">
-      <div className="rounded-2xl border border-black/5 bg-panel p-4 shadow-soft">
+      <div className={`rounded-2xl border bg-panel p-4 shadow-soft ${
+        isCurrentWeek
+          ? "border-black/5"
+          : "border-amber-400/40 ring-1 ring-amber-400/20"
+      }`}>
+        {/* Week navigation header */}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="rounded-full border border-black/10 bg-white p-2 transition hover:bg-black/5"
+              onClick={goToPrevWeek}
+              aria-label="Previous week"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              className="rounded-full border border-black/10 bg-white p-2 transition hover:bg-black/5"
+              onClick={goToNextWeek}
+              aria-label="Next week"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+            <span className="ml-1 text-sm font-medium text-ink">{weekDateRange}</span>
+            {!isCurrentWeek && (
+              <button
+                type="button"
+                className="ml-2 rounded-full border border-amber-500/30 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700 transition hover:bg-amber-100"
+                onClick={goToCurrentWeek}
+              >
+                Back to today
+              </button>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
