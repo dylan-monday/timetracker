@@ -211,6 +211,7 @@ export function WeekGrid({ weekStart, onWeekChange }: WeekGridProps) {
   const [draftActionId, setDraftActionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pinnedProjectIds, setPinnedProjectIds] = useState<string[]>([]);
+  const pinnedProjectIdsRef = useRef<string[]>([]);
   const [savedCell, setSavedCell] = useState<{ lineId: string; dayIndex: number } | null>(null);
   const [newLineIds, setNewLineIds] = useState<Set<string>>(new Set());
   const [lineOrder, setLineOrder] = useState<string[]>([]);
@@ -235,6 +236,7 @@ export function WeekGrid({ weekStart, onWeekChange }: WeekGridProps) {
   const savePinnedProjectIds = useCallback(
     (next: string[]) => {
       setPinnedProjectIds(next);
+      pinnedProjectIdsRef.current = next;
       if (typeof window !== "undefined") {
         window.localStorage.setItem(
           `${WEEK_LINE_STORAGE_PREFIX}:${weekKey}`,
@@ -250,18 +252,23 @@ export function WeekGrid({ weekStart, onWeekChange }: WeekGridProps) {
     const raw = window.localStorage.getItem(`${WEEK_LINE_STORAGE_PREFIX}:${weekKey}`);
     if (!raw) {
       setPinnedProjectIds([]);
+      pinnedProjectIdsRef.current = [];
       return;
     }
 
     try {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        setPinnedProjectIds(parsed.filter((item) => typeof item === "string"));
+        const filtered = parsed.filter((item) => typeof item === "string");
+        setPinnedProjectIds(filtered);
+        pinnedProjectIdsRef.current = filtered;
       } else {
         setPinnedProjectIds([]);
+        pinnedProjectIdsRef.current = [];
       }
     } catch {
       setPinnedProjectIds([]);
+      pinnedProjectIdsRef.current = [];
     }
   }, [weekKey]);
 
@@ -421,7 +428,7 @@ export function WeekGrid({ weekStart, onWeekChange }: WeekGridProps) {
     try {
       const { clients: dbClients, projects: dbProjects } = await fetchClientsAndProjects(supabase);
       const [dbLines, dbDrafts] = await Promise.all([
-        fetchWeekLines(supabase, dbProjects, pinnedProjectIds, effectiveWeekStart),
+        fetchWeekLines(supabase, dbProjects, pinnedProjectIdsRef.current, effectiveWeekStart),
         fetchWeekDraftEntries(supabase, effectiveWeekStart)
       ]);
 
@@ -436,7 +443,7 @@ export function WeekGrid({ weekStart, onWeekChange }: WeekGridProps) {
     } finally {
       setLoading(false);
     }
-  }, [pinnedProjectIds, supabase, user, effectiveWeekStart]);
+  }, [supabase, user, effectiveWeekStart]);
 
   useEffect(() => {
     void refreshWeekData();

@@ -168,7 +168,7 @@ export function ComboBox({
         placeholder={placeholder}
         disabled={disabled}
         autoFocus={autoFocus}
-        className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-black/30 disabled:opacity-50"
+        className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-base outline-none focus:border-black/30 disabled:opacity-50 sm:text-sm"
         autoComplete="off"
         role="combobox"
         aria-expanded={isOpen}
@@ -181,7 +181,7 @@ export function ComboBox({
           ref={listRef}
           id="combobox-listbox"
           role="listbox"
-          className="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-auto rounded-xl border border-black/10 bg-white py-1 shadow-lg"
+          className="absolute left-0 right-0 z-50 max-h-48 overflow-auto rounded-xl border border-black/10 bg-white py-1 shadow-lg bottom-full mb-1 sm:bottom-auto sm:top-full sm:mb-0 sm:mt-1"
         >
           {filteredOptions.map((option, index) => {
             const isHighlighted = index === highlightedIndex;
