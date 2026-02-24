@@ -169,7 +169,19 @@ export function WeekGrid() {
   const [pinnedProjectIds, setPinnedProjectIds] = useState<string[]>([]);
   const [savedCell, setSavedCell] = useState<{ lineId: string; dayIndex: number } | null>(null);
   const [newLineIds, setNewLineIds] = useState<Set<string>>(new Set());
-  const [lineOrder, setLineOrder] = useState<string[]>([]);
+  const [lineOrder, setLineOrder] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = window.localStorage.getItem(LINE_ORDER_STORAGE_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed)
+        ? parsed.filter((item): item is string => typeof item === "string")
+        : [];
+    } catch {
+      return [];
+    }
+  });
   const [draggedLineId, setDraggedLineId] = useState<string | null>(null);
   const [dragOverLineId, setDragOverLineId] = useState<string | null>(null);
   const activeInputRef = useRef<HTMLInputElement>(null);
@@ -227,26 +239,6 @@ export function WeekGrid() {
     }
   }, [mobileDayIndex, todayDayIndex, visibleDayIndexes]);
 
-  // Load line order from localStorage
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const raw = window.localStorage.getItem(LINE_ORDER_STORAGE_KEY);
-    if (!raw) {
-      setLineOrder([]);
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        setLineOrder(parsed.filter((item) => typeof item === "string"));
-      } else {
-        setLineOrder([]);
-      }
-    } catch {
-      setLineOrder([]);
-    }
-  }, []);
 
   // Save line order to localStorage
   const saveLineOrder = useCallback((order: string[]) => {

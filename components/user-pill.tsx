@@ -9,10 +9,10 @@ export function UserPill() {
 
   return (
     <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/85 px-2 py-1">
-      <span className="px-2 text-xs text-muted">{user.email}</span>
+      <span className="max-w-[120px] truncate px-2 text-xs text-muted sm:max-w-none">{user.email}</span>
       <button
         type="button"
-        className="rounded-full border border-black/10 px-3 py-1 text-xs font-medium text-ink"
+        className="shrink-0 rounded-full border border-black/10 px-3 py-1 text-xs font-medium text-ink"
         onClick={() => {
           void signOut();
         }}

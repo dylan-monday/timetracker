@@ -164,29 +164,12 @@ export function AmbientMotion() {
     // Using multiple radial gradients layered on top of each other
     // Each gradient is positioned at a different point and drifts slowly
     // More pronounced alphas for that dreamy, immersive feel
-    const gradient = `
-      radial-gradient(
-        ellipse 85% 75% at ${positions.p1.x}% ${positions.p1.y}%,
-        ${rgbaString(colors.primary, 0.7)} 0%,
-        ${rgbaString(colors.primary, 0.35)} 30%,
-        transparent 60%
-      ),
-      radial-gradient(
-        ellipse 75% 85% at ${positions.p2.x}% ${positions.p2.y}%,
-        ${rgbaString(colors.secondary, 0.65)} 0%,
-        ${rgbaString(colors.secondary, 0.3)} 35%,
-        transparent 65%
-      ),
-      radial-gradient(
-        ellipse 95% 65% at ${positions.p3.x}% ${positions.p3.y}%,
-        ${rgbaString(colors.tertiary, 0.6)} 0%,
-        ${rgbaString(colors.tertiary, 0.25)} 40%,
-        transparent 70%
-      ),
-      linear-gradient(to bottom, #f8f9f6 0%, #f5f6f3 100%)
-    `;
+    const gradient = `radial-gradient(ellipse 85% 75% at ${positions.p1.x}% ${positions.p1.y}%, ${rgbaString(colors.primary, 0.7)} 0%, ${rgbaString(colors.primary, 0.35)} 30%, transparent 60%), radial-gradient(ellipse 75% 85% at ${positions.p2.x}% ${positions.p2.y}%, ${rgbaString(colors.secondary, 0.65)} 0%, ${rgbaString(colors.secondary, 0.3)} 35%, transparent 65%), radial-gradient(ellipse 95% 65% at ${positions.p3.x}% ${positions.p3.y}%, ${rgbaString(colors.tertiary, 0.6)} 0%, ${rgbaString(colors.tertiary, 0.25)} 40%, transparent 70%)`;
 
-    containerRef.current.style.background = gradient;
+    // Use backgroundImage for the gradients (better mobile support)
+    // and backgroundColor for the base color
+    containerRef.current.style.backgroundImage = gradient;
+    containerRef.current.style.backgroundColor = "#f5f6f3";
   }, []);
 
   useEffect(() => {
@@ -272,7 +255,12 @@ export function AmbientMotion() {
         aria-hidden="true"
         style={{
           // Initial background - will be replaced by JS
-          background: "#f5f6f3",
+          backgroundColor: "#f5f6f3",
+          // GPU compositing hints for iOS Safari
+          transform: "translateZ(0)",
+          WebkitTransform: "translateZ(0)",
+          backfaceVisibility: "hidden",
+          WebkitBackfaceVisibility: "hidden",
         }}
       />
       {debugMode && (
