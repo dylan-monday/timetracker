@@ -14,6 +14,7 @@ create table if not exists public.profiles (
   role public.app_role not null default 'user',
   timezone text not null default 'America/Los_Angeles',
   hourly_rate_cents integer not null default 0,
+  line_order text[] not null default '{}',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   check (position('@' in email) > 1)

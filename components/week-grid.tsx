@@ -243,13 +243,46 @@ export function WeekGrid() {
     setLineOrderLoaded(true);
   }, []);
 
-  // Save line order to localStorage
+  // Load line order from Supabase (for cross-device sync)
+  useEffect(() => {
+    if (!supabase || !user) return;
+
+    const loadFromSupabase = async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("line_order")
+        .eq("id", user.id)
+        .single();
+
+      if (!error && data?.line_order && Array.isArray(data.line_order)) {
+        const supabaseOrder = data.line_order.filter((item): item is string => typeof item === "string");
+        // Only update if Supabase has data and it differs from localStorage
+        if (supabaseOrder.length > 0) {
+          setLineOrder(supabaseOrder);
+          // Sync to localStorage
+          window.localStorage.setItem(LINE_ORDER_STORAGE_KEY, JSON.stringify(supabaseOrder));
+        }
+      }
+    };
+
+    void loadFromSupabase();
+  }, [supabase, user]);
+
+  // Save line order to localStorage and Supabase
   const saveLineOrder = useCallback((order: string[]) => {
     setLineOrder(order);
+    // Save to localStorage immediately
     if (typeof window !== "undefined") {
       window.localStorage.setItem(LINE_ORDER_STORAGE_KEY, JSON.stringify(order));
     }
-  }, []);
+    // Save to Supabase in background
+    if (supabase && user) {
+      void supabase
+        .from("profiles")
+        .update({ line_order: order })
+        .eq("id", user.id);
+    }
+  }, [supabase, user]);
 
   // Sort lines based on saved order
   const sortedLines = useMemo(() => {

@@ -1,10 +1,9 @@
 // Warm, organic bell sounds using Web Audio API
 // Inspired by Björk's "Frosti" - soft, resonant, contemplative
 // With subtle detuning and harmonic complexity for warmth
+// Note: Sounds only work on desktop browsers due to mobile AudioContext restrictions
 
 let audioContext: AudioContext | null = null;
-let isUnlocked = false;
-let unlockListenersAdded = false;
 
 function getAudioContext(): AudioContext | null {
   if (typeof window === "undefined") return null;
@@ -20,70 +19,6 @@ function getAudioContext(): AudioContext | null {
   return audioContext;
 }
 
-// Unlock AudioContext - must be called during a user gesture
-function unlockAudioContext(): void {
-  if (isUnlocked) return;
-
-  const ctx = getAudioContext();
-  if (!ctx) return;
-
-  if (ctx.state === "suspended") {
-    // On iOS, we need to play a silent buffer to unlock
-    const buffer = ctx.createBuffer(1, 1, 22050);
-    const source = ctx.createBufferSource();
-    source.buffer = buffer;
-    source.connect(ctx.destination);
-    source.start(0);
-
-    ctx.resume().then(() => {
-      isUnlocked = true;
-    }).catch(() => {
-      // Ignore - will retry
-    });
-  } else if (ctx.state === "running") {
-    isUnlocked = true;
-  }
-}
-
-// Set up listeners for user gestures to unlock AudioContext
-function setupAudioUnlock(): void {
-  if (typeof window === "undefined" || unlockListenersAdded) return;
-  unlockListenersAdded = true;
-
-  const events = ["touchstart", "touchend", "click", "keydown"];
-
-  const unlockHandler = () => {
-    unlockAudioContext();
-    // Remove listeners once unlocked
-    if (isUnlocked) {
-      events.forEach((event) => {
-        document.removeEventListener(event, unlockHandler, true);
-      });
-    }
-  };
-
-  events.forEach((event) => {
-    document.addEventListener(event, unlockHandler, {
-      capture: true,
-      passive: true
-    });
-  });
-}
-
-// Export for components to call on mount
-export function initAudioContext(): void {
-  setupAudioUnlock();
-}
-
-// Initialize audio unlock on module load (client-side only)
-if (typeof window !== "undefined") {
-  if (document.readyState === "complete" || document.readyState === "interactive") {
-    setupAudioUnlock();
-  } else {
-    document.addEventListener("DOMContentLoaded", setupAudioUnlock);
-  }
-}
-
 interface BellOptions {
   frequency?: number;
   duration?: number;
@@ -93,18 +28,7 @@ interface BellOptions {
 
 function playBell(options: BellOptions = {}): void {
   const ctx = getAudioContext();
-  if (!ctx) return;
-
-  // Try to unlock/resume context if suspended
-  if (ctx.state === "suspended") {
-    void ctx.resume();
-    // Don't return early - the sound might play if we're in a user gesture
-  }
-
-  // Still try to play even if suspended - it might work if we're in a gesture handler
-  if (ctx.state !== "running" && ctx.state !== "suspended") {
-    return;
-  }
+  if (!ctx || ctx.state === "suspended") return;
 
   const {
     frequency = 220,
