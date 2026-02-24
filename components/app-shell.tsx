@@ -33,7 +33,7 @@ export function AppShell({ title, subtitle, children }: AppShellProps) {
         <header className="flex items-center justify-between rounded-2xl border border-black/5 bg-gradient-to-r from-panel via-white/85 to-panel px-4 py-3 shadow-soft backdrop-blur">
           <div className="flex items-center gap-3">
             <Link href="/week" aria-label="Go to week view">
-              <LogoGradient className="h-7 w-[152px] sm:h-8 sm:w-[175px]" />
+              <LogoGradient className="h-7 aspect-[1516/312] sm:h-8" />
             </Link>
           </div>
           <nav className="flex items-center gap-1 rounded-xl border border-black/5 bg-white/60 p-1">
