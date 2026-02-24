@@ -4,9 +4,9 @@ import Link from "next/link";
 import { CalendarRange, ChartColumn, Shield } from "lucide-react";
 import { clsx } from "clsx";
 import type { ReactNode } from "react";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { AmbientMotion } from "@/components/ambient-motion";
+import { LogoGradient } from "@/components/logo-gradient";
 import { UserPill } from "@/components/user-pill";
 import { playSound, type SoundName } from "@/lib/sounds";
 
@@ -33,14 +33,7 @@ export function AppShell({ title, subtitle, children }: AppShellProps) {
         <header className="flex items-center justify-between rounded-2xl border border-black/5 bg-gradient-to-r from-panel via-white/85 to-panel px-4 py-3 shadow-soft backdrop-blur">
           <div className="flex items-center gap-3">
             <Link href="/week" aria-label="Go to week view">
-              <Image
-                src="/m26purple.svg"
-                alt="M+P Time"
-                width={152}
-                height={31}
-                className="h-7 w-auto sm:h-8"
-                priority
-              />
+              <LogoGradient className="h-7 w-[152px] sm:h-8 sm:w-[175px]" />
             </Link>
           </div>
           <nav className="flex items-center gap-1 rounded-xl border border-black/5 bg-white/60 p-1">
