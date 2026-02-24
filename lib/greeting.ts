@@ -31,7 +31,7 @@ const morningGreetings: GreetingTemplate[] = [
   { text: "Good morning, {name}.", useName: true },
   { text: "Morning, {name}.", useName: true },
   { text: "Fresh start.", useName: false },
-  { text: "Let's go, {name}", useName: false },
+  { text: "Let's go, {name}.", useName: true },
   { text: "{day}'s yours.", useName: false },
   { text: "Begin well.", useName: false },
   { text: "Claim the day.", useName: false },
@@ -47,10 +47,6 @@ const afternoonGreetings: GreetingTemplate[] = [
   { text: "Halfway there.", useName: false },
   { text: "Your attention is the product.", useName: false },
   { text: "They buy the output. You own the hours.", useName: false },
-];
-
-const tuesdayAfternoonGreetings: GreetingTemplate[] = [
-  { text: "Accurate hours create value.", useName: false },
 ];
 
 const eveningGreetings: GreetingTemplate[] = [
@@ -79,13 +75,14 @@ const generalGreetings: GreetingTemplate[] = [
   { text: "Every hour has value.", useName: false },
   { text: "The ledger is yours.", useName: false },
   { text: "Did it? Record it.", useName: false },
+  { text: "Accurate hours create value.", useName: false },
 ];
 
 const weekContextGreetings: Record<"start" | "mid" | "end", GreetingTemplate[]> = {
   start: [
     { text: "New week ahead.", useName: false },
     { text: "The week begins.", useName: false },
-    { text: "Make it week count.", useName: false },
+    { text: "Make this week count.", useName: false },
   ],
   mid: [
     { text: "Midweek momentum.", useName: false },
@@ -102,7 +99,6 @@ const weekContextGreetings: Record<"start" | "mid" | "end", GreetingTemplate[]> 
 export function getContextualGreeting(firstName?: string): string {
   const timeOfDay = getTimeOfDay();
   const dayName = getDayName();
-  const dayOfWeek = getDayOfWeek();
   const weekProgress = getWeekProgress();
 
   // Use a seed based on date and hour to get consistent-ish rotation
@@ -121,10 +117,6 @@ export function getContextualGreeting(firstName?: string): string {
       break;
     case "afternoon":
       greetings = [...afternoonGreetings];
-      // Add Tuesday-specific greeting on Tuesdays
-      if (dayOfWeek === 2) {
-        greetings = [...greetings, ...tuesdayAfternoonGreetings];
-      }
       break;
     case "evening":
       greetings = [...eveningGreetings];
