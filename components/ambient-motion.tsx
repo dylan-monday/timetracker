@@ -247,6 +247,10 @@ export function AmbientMotion() {
     };
   }, [debugMode, reducedMotion, updateGradient]);
 
+  // Initial gradient based on current time (CSS fallback if JS doesn't run)
+  const initialColors = getColorsForTime(new Date().getHours(), new Date().getMinutes());
+  const initialGradient = `radial-gradient(ellipse 85% 75% at 25% 20%, ${rgbaString(initialColors.primary, 0.7)} 0%, ${rgbaString(initialColors.primary, 0.35)} 30%, transparent 60%), radial-gradient(ellipse 75% 85% at 75% 30%, ${rgbaString(initialColors.secondary, 0.65)} 0%, ${rgbaString(initialColors.secondary, 0.3)} 35%, transparent 65%), radial-gradient(ellipse 95% 65% at 50% 80%, ${rgbaString(initialColors.tertiary, 0.6)} 0%, ${rgbaString(initialColors.tertiary, 0.25)} 40%, transparent 70%)`;
+
   return (
     <>
       <div
@@ -254,18 +258,18 @@ export function AmbientMotion() {
         className="pointer-events-none fixed inset-0 z-0"
         aria-hidden="true"
         style={{
-          // Initial background - will be replaced by JS
           backgroundColor: "#f5f6f3",
+          backgroundImage: initialGradient,
           // GPU compositing hints for iOS Safari
-          transform: "translateZ(0)",
-          WebkitTransform: "translateZ(0)",
-          backfaceVisibility: "hidden",
+          WebkitTransform: "translate3d(0,0,0)",
+          transform: "translate3d(0,0,0)",
           WebkitBackfaceVisibility: "hidden",
+          backfaceVisibility: "hidden",
         }}
       />
       {debugMode && (
         <div className="pointer-events-none fixed left-2 top-2 z-[100] rounded bg-black/80 px-2 py-1 font-mono text-[10px] text-white">
-          BG Debug: 24h cycle in 60s
+          BG Debug: 24h cycle in 60s | Motion: {reducedMotion ? "reduced" : "full"}
         </div>
       )}
     </>

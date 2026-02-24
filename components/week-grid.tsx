@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, Plus, RefreshCw, Sparkles, Trash2 } from "lucide-react";
-import { getRandomMessage, type FooterMessage } from "@/lib/footer-messages";
 import { useAuth } from "@/components/auth-provider";
 import { makeWeekDays } from "@/lib/mock-data";
 import { ComboBox, type ComboBoxOption } from "@/components/combobox";
@@ -181,7 +180,6 @@ export function WeekGrid() {
   }, []);
   const [mobileDayIndex, setMobileDayIndex] = useState(todayDayIndex);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
-  const footerMessage = useMemo<FooterMessage>(() => getRandomMessage(), []);
 
   const visibleDayIndexes = showWeekends ? ALL_DAY_INDEXES : BUSINESS_DAY_INDEXES;
   const activeMobileDayIndex = visibleDayIndexes.includes(mobileDayIndex)
@@ -1351,14 +1349,6 @@ export function WeekGrid() {
         )}
       </div>
 
-      <div className="py-2 text-center">
-        <p className="font-display text-xl leading-tight text-[#8f959b]/50 italic sm:text-2xl">
-          {footerMessage.author ? `"${footerMessage.text}"` : footerMessage.text}
-        </p>
-        {footerMessage.author && (
-          <p className="font-display mt-1 text-sm text-[#8f959b]/45 sm:text-base">— {footerMessage.author}</p>
-        )}
-      </div>
     </section>
   );
 }
