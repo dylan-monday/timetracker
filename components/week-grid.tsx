@@ -271,13 +271,16 @@ export function WeekGrid() {
 
   // Save line order to localStorage and Supabase
   const saveLineOrder = useCallback(async (order: string[]) => {
+    console.log("[LineOrder] Saving order:", order.length, "items");
     setLineOrder(order);
     // Save to localStorage immediately
     if (typeof window !== "undefined") {
       window.localStorage.setItem(LINE_ORDER_STORAGE_KEY, JSON.stringify(order));
+      console.log("[LineOrder] Saved to localStorage");
     }
     // Save to Supabase
     if (supabase && user) {
+      console.log("[LineOrder] Saving to Supabase for user:", user.id);
       const { error } = await supabase
         .from("profiles")
         .update({ line_order: order })
@@ -285,7 +288,11 @@ export function WeekGrid() {
 
       if (error) {
         console.error("[LineOrder] Failed to save to Supabase:", error.message);
+      } else {
+        console.log("[LineOrder] Saved to Supabase successfully");
       }
+    } else {
+      console.warn("[LineOrder] No supabase or user available", { supabase: !!supabase, user: !!user });
     }
   }, [supabase, user]);
 

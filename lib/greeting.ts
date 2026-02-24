@@ -31,10 +31,11 @@ const morningGreetings: GreetingTemplate[] = [
   { text: "Good morning, {name}.", useName: true },
   { text: "Morning, {name}.", useName: true },
   { text: "Fresh start.", useName: false },
+  { text: "Let's go, {name}", useName: false },
   { text: "{day}'s yours.", useName: false },
   { text: "Begin well.", useName: false },
-  { text: "The day is unclaimed. For now.", useName: false },
-  { text: "First entry of the day is the hardest.", useName: false },
+  { text: "Claim the day.", useName: false },
+  { text: "Make it count.", useName: false },
 ];
 
 const afternoonGreetings: GreetingTemplate[] = [
@@ -42,48 +43,49 @@ const afternoonGreetings: GreetingTemplate[] = [
   { text: "Afternoon, {name}.", useName: true },
   { text: "Steady on.", useName: false },
   { text: "Keep moving.", useName: false },
+  { text: "Time is value.", useName: false },
   { text: "Halfway there.", useName: false },
   { text: "Your attention is the product.", useName: false },
-  { text: "The client bought the output. You still own the hours.", useName: false },
+  { text: "They buy the output. You own the hours.", useName: false },
 ];
 
 const tuesdayAfternoonGreetings: GreetingTemplate[] = [
-  { text: "An honest Tuesday is worth more than a padded Friday.", useName: false },
+  { text: "Accurate hours create value.", useName: false },
 ];
 
 const eveningGreetings: GreetingTemplate[] = [
   { text: "Good evening, {name}.", useName: true },
   { text: "Evening, {name}.", useName: true },
   { text: "Wrapping up.", useName: false },
+  { text: "Still going?", useName: false },
   { text: "Day's end.", useName: false },
   { text: "Almost there.", useName: false },
-  { text: "What did today actually look like?", useName: false },
+  { text: "What did today look like?", useName: false },
   { text: "Close the loop.", useName: false },
   { text: "Log it before it fades.", useName: false },
 ];
 
 const generalGreetings: GreetingTemplate[] = [
-  { text: "Your hours. Your data.", useName: false },
+  { text: "Your hours. Your value.", useName: false },
   { text: "Credit the thinking, not just the doing.", useName: false },
-  { text: "The unlogged hour still happened.", useName: false },
+  { text: "Unlogged hours still happened.", useName: false },
   { text: "What you track, you own.", useName: false },
   { text: "Nobody sees this but you.", useName: false },
   { text: "The quiet work counts too.", useName: false },
   { text: "Put it on record.", useName: false },
-  { text: "Time spent is currency. Know your balance.", useName: false },
-  { text: "The river doesn't wait.", useName: false },
-  { text: "Even clocks have a point of view.", useName: false },
-  { text: "What did this morning cost?", useName: false },
-  { text: "Every hour has an address.", useName: false },
+  { text: "Time spent is invested. Know your balance.", useName: false },
+  { text: "Measuring time is measuring value.", useName: false },
+  { text: "What did you invest in the day?", useName: false },
+  { text: "Every hour has value.", useName: false },
   { text: "The ledger is yours.", useName: false },
-  { text: "Somewhere, someone is billing for this exact moment.", useName: false },
+  { text: "Did it? Record it.", useName: false },
 ];
 
 const weekContextGreetings: Record<"start" | "mid" | "end", GreetingTemplate[]> = {
   start: [
     { text: "New week ahead.", useName: false },
-    { text: "Week begins.", useName: false },
-    { text: "Make this week count.", useName: false },
+    { text: "The week begins.", useName: false },
+    { text: "Make it week count.", useName: false },
   ],
   mid: [
     { text: "Midweek momentum.", useName: false },
