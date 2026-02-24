@@ -4,9 +4,7 @@ import { useEffect, useState } from "react";
 
 /**
  * Time-Based Gradient Background
- *
- * Uses CSS animations for smooth gradient movement (better iOS support)
- * and JS only for time-based color changes.
+ * Uses CSS animations with soft gradients (no blur filter for iOS compatibility)
  */
 
 const TIME_PALETTES = {
@@ -52,96 +50,42 @@ function rgbaString(color: ColorRGB, alpha: number): string {
   return `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`;
 }
 
-function getColorsForTime(hour: number): { primary: ColorRGB; secondary: ColorRGB; tertiary: ColorRGB } {
-  return TIME_PALETTES[getTimePeriod(hour)];
-}
-
 export function AmbientMotion() {
-  const [colors, setColors] = useState(() => getColorsForTime(new Date().getHours()));
+  const [colors, setColors] = useState(() => TIME_PALETTES[getTimePeriod(new Date().getHours())]);
   const [reducedMotion, setReducedMotion] = useState(false);
 
-  // Update colors based on time (check every minute)
   useEffect(() => {
     const updateColors = () => {
-      setColors(getColorsForTime(new Date().getHours()));
+      setColors(TIME_PALETTES[getTimePeriod(new Date().getHours())]);
     };
-
     const interval = setInterval(updateColors, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // Check reduced motion preference
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     setReducedMotion(mq.matches);
-
     const handler = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
   }, []);
 
-  // CSS custom properties for the gradient colors
-  const cssVars = {
-    "--gradient-primary": rgbaString(colors.primary, 0.6),
-    "--gradient-primary-fade": rgbaString(colors.primary, 0.25),
-    "--gradient-secondary": rgbaString(colors.secondary, 0.55),
-    "--gradient-secondary-fade": rgbaString(colors.secondary, 0.2),
-    "--gradient-tertiary": rgbaString(colors.tertiary, 0.5),
-    "--gradient-tertiary-fade": rgbaString(colors.tertiary, 0.15),
-  } as React.CSSProperties;
+  // Build gradient with very soft edges (no blur needed)
+  const gradient = `
+    radial-gradient(ellipse 120% 100% at 20% 20%, ${rgbaString(colors.primary, 0.5)} 0%, ${rgbaString(colors.primary, 0.2)} 25%, transparent 50%),
+    radial-gradient(ellipse 100% 120% at 80% 30%, ${rgbaString(colors.secondary, 0.45)} 0%, ${rgbaString(colors.secondary, 0.15)} 30%, transparent 55%),
+    radial-gradient(ellipse 130% 90% at 50% 90%, ${rgbaString(colors.tertiary, 0.4)} 0%, ${rgbaString(colors.tertiary, 0.1)} 35%, transparent 60%),
+    linear-gradient(to bottom, #f8f9f6 0%, #f5f6f3 100%)
+  `;
 
   return (
-    <>
-      <style>{`
-        @keyframes drift1 {
-          0%, 100% { transform: translate(0%, 0%); }
-          25% { transform: translate(10%, 5%); }
-          50% { transform: translate(-5%, 10%); }
-          75% { transform: translate(-10%, -5%); }
-        }
-        @keyframes drift2 {
-          0%, 100% { transform: translate(0%, 0%); }
-          25% { transform: translate(-8%, 8%); }
-          50% { transform: translate(8%, -4%); }
-          75% { transform: translate(4%, 6%); }
-        }
-        @keyframes drift3 {
-          0%, 100% { transform: translate(0%, 0%); }
-          25% { transform: translate(6%, -8%); }
-          50% { transform: translate(-10%, 5%); }
-          75% { transform: translate(8%, 8%); }
-        }
-        .gradient-layer {
-          position: absolute;
-          inset: -20%;
-          border-radius: 50%;
-          filter: blur(60px);
-        }
-        .gradient-1 {
-          background: radial-gradient(ellipse at center, var(--gradient-primary) 0%, var(--gradient-primary-fade) 40%, transparent 70%);
-          animation: drift1 45s ease-in-out infinite;
-        }
-        .gradient-2 {
-          background: radial-gradient(ellipse at center, var(--gradient-secondary) 0%, var(--gradient-secondary-fade) 40%, transparent 70%);
-          animation: drift2 50s ease-in-out infinite;
-        }
-        .gradient-3 {
-          background: radial-gradient(ellipse at center, var(--gradient-tertiary) 0%, var(--gradient-tertiary-fade) 40%, transparent 70%);
-          animation: drift3 55s ease-in-out infinite;
-        }
-        .no-motion .gradient-layer {
-          animation: none !important;
-        }
-      `}</style>
-      <div
-        className={`pointer-events-none fixed inset-0 z-0 overflow-hidden ${reducedMotion ? "no-motion" : ""}`}
-        style={{ backgroundColor: "#f5f6f3", ...cssVars }}
-        aria-hidden="true"
-      >
-        <div className="gradient-layer gradient-1" style={{ top: "-10%", left: "-10%" }} />
-        <div className="gradient-layer gradient-2" style={{ top: "10%", right: "-15%" }} />
-        <div className="gradient-layer gradient-3" style={{ bottom: "-5%", left: "20%" }} />
-      </div>
-    </>
+    <div
+      className="pointer-events-none fixed inset-0 z-0"
+      aria-hidden="true"
+      style={{
+        background: gradient,
+        transition: reducedMotion ? "none" : "background 2s ease-in-out",
+      }}
+    />
   );
 }

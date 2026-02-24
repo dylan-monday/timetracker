@@ -254,14 +254,15 @@ export function WeekGrid() {
         .eq("id", user.id)
         .single();
 
-      if (!error && data?.line_order && Array.isArray(data.line_order)) {
+      if (error) {
+        console.error("[LineOrder] Failed to load from Supabase:", error.message);
+        return;
+      }
+
+      if (data?.line_order && Array.isArray(data.line_order) && data.line_order.length > 0) {
         const supabaseOrder = data.line_order.filter((item): item is string => typeof item === "string");
-        // Only update if Supabase has data and it differs from localStorage
-        if (supabaseOrder.length > 0) {
-          setLineOrder(supabaseOrder);
-          // Sync to localStorage
-          window.localStorage.setItem(LINE_ORDER_STORAGE_KEY, JSON.stringify(supabaseOrder));
-        }
+        setLineOrder(supabaseOrder);
+        window.localStorage.setItem(LINE_ORDER_STORAGE_KEY, JSON.stringify(supabaseOrder));
       }
     };
 
@@ -269,18 +270,22 @@ export function WeekGrid() {
   }, [supabase, user]);
 
   // Save line order to localStorage and Supabase
-  const saveLineOrder = useCallback((order: string[]) => {
+  const saveLineOrder = useCallback(async (order: string[]) => {
     setLineOrder(order);
     // Save to localStorage immediately
     if (typeof window !== "undefined") {
       window.localStorage.setItem(LINE_ORDER_STORAGE_KEY, JSON.stringify(order));
     }
-    // Save to Supabase in background
+    // Save to Supabase
     if (supabase && user) {
-      void supabase
+      const { error } = await supabase
         .from("profiles")
         .update({ line_order: order })
         .eq("id", user.id);
+
+      if (error) {
+        console.error("[LineOrder] Failed to save to Supabase:", error.message);
+      }
     }
   }, [supabase, user]);
 
