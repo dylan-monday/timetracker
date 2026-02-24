@@ -449,10 +449,12 @@ export function WeekGrid({ weekStart, onWeekChange }: WeekGridProps) {
     void refreshWeekData();
   }, [refreshWeekData]);
 
-  const totalsByDay = visibleDayIndexes.reduce<Record<number, number>>((acc, dayIndex) => {
-    acc[dayIndex] = lines.reduce((sum, line) => sum + (line.cells[String(dayIndex)] ?? 0), 0);
-    return acc;
-  }, {});
+  const totalsByDay = useMemo(() => {
+    return visibleDayIndexes.reduce<Record<number, number>>((acc, dayIndex) => {
+      acc[dayIndex] = lines.reduce((sum, line) => sum + (line.cells[String(dayIndex)] ?? 0), 0);
+      return acc;
+    }, {});
+  }, [lines, visibleDayIndexes]);
   const mobileDay = weekDays[activeMobileDayIndex - 1];
   const mobileMinutes = totalsByDay[activeMobileDayIndex] ?? 0;
   const mobilePrimaryLabel = mobileDayLabel(activeMobileDayIndex, todayDayIndex, mobileDay?.label ?? "");

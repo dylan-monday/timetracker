@@ -134,11 +134,39 @@ EMAIL_FROM
 CRON_SECRET
 ```
 
+## Security
+
+**Strengths:**
+- All tables have RLS policies restricting access to `owner_id = auth.uid()`
+- Domain restriction enforced at DB level (`@mondayandpartners.com` only)
+- No SQL injection risks (parameterized queries via Supabase client)
+- CRON endpoints protected by `x-vercel-cron` header or `CRON_SECRET`
+- Service role key never exposed to client
+
+**Known gaps (low risk for single-user):**
+- Admin check is client-side only (RLS still protects data)
+- No rate limiting on API routes
+- Calendar feed URL validation is basic (https:// only)
+
+## Performance
+
+**Optimizations in place:**
+- Database indexes on frequently queried columns (see `supabase/schema.sql`)
+- Optimistic UI updates for time entries
+- `useMemo` for expensive calculations (`totalsByDay`, `filteredProjects`, etc.)
+- Parallel data fetching with `Promise.all`
+- Ref pattern for `pinnedProjectIds` to avoid unnecessary re-renders
+
+**Known issues:**
+- N+1 query pattern in `lib/server/time-report.ts` (email reports) - acceptable for single user
+- `week-grid.tsx` is large (~1500 lines) - could be split into smaller components
+
 ## Known Limitations
 
 1. **Mobile animation**: Background gradient doesn't animate on iOS Safari (static fallback is fine)
 2. **Mobile sounds**: Disabled entirely - AudioContext unlock too unreliable
 3. **Single user**: Currently designed for Dylan only, no multi-tenancy
+4. **Admin UI**: Client-side check only (add server middleware if multi-user)
 
 ## Recent Work (Feb 2026)
 
@@ -149,6 +177,9 @@ CRON_SECRET
 - Row order syncs to Supabase for cross-device persistence
 - Contextual greetings based on time of day and user name
 - Crystalline bell sounds for UI feedback (desktop only)
+- Mobile ComboBox: dropdown appears above, 16px font prevents iOS zoom
+- Performance: ref pattern for pinnedProjectIds, useMemo for totalsByDay
+- Added calendar sync indexes (migration: `2026-02-24_add_calendar_sync_indexes.sql`)
 
 ## Development
 
