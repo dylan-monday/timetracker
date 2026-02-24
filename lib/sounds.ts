@@ -4,18 +4,23 @@
 
 let audioContext: AudioContext | null = null;
 let isUnlocked = false;
+let unlockListenersAdded = false;
 
 function getAudioContext(): AudioContext | null {
   if (typeof window === "undefined") return null;
 
   if (!audioContext) {
-    audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    try {
+      audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    } catch {
+      return null;
+    }
   }
 
   return audioContext;
 }
 
-// Unlock AudioContext on first user gesture (required for mobile browsers)
+// Unlock AudioContext - must be called during a user gesture
 function unlockAudioContext(): void {
   if (isUnlocked) return;
 
@@ -23,10 +28,17 @@ function unlockAudioContext(): void {
   if (!ctx) return;
 
   if (ctx.state === "suspended") {
+    // On iOS, we need to play a silent buffer to unlock
+    const buffer = ctx.createBuffer(1, 1, 22050);
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(ctx.destination);
+    source.start(0);
+
     ctx.resume().then(() => {
       isUnlocked = true;
     }).catch(() => {
-      // Ignore errors - will retry on next gesture
+      // Ignore - will retry
     });
   } else if (ctx.state === "running") {
     isUnlocked = true;
@@ -35,13 +47,14 @@ function unlockAudioContext(): void {
 
 // Set up listeners for user gestures to unlock AudioContext
 function setupAudioUnlock(): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || unlockListenersAdded) return;
+  unlockListenersAdded = true;
 
   const events = ["touchstart", "touchend", "click", "keydown"];
 
   const unlockHandler = () => {
     unlockAudioContext();
-    // Keep listeners until actually unlocked
+    // Remove listeners once unlocked
     if (isUnlocked) {
       events.forEach((event) => {
         document.removeEventListener(event, unlockHandler, true);
@@ -57,9 +70,13 @@ function setupAudioUnlock(): void {
   });
 }
 
-// Initialize audio unlock on module load
+// Export for components to call on mount
+export function initAudioContext(): void {
+  setupAudioUnlock();
+}
+
+// Initialize audio unlock on module load (client-side only)
 if (typeof window !== "undefined") {
-  // Set up unlock listeners immediately
   if (document.readyState === "complete" || document.readyState === "interactive") {
     setupAudioUnlock();
   } else {
@@ -78,12 +95,14 @@ function playBell(options: BellOptions = {}): void {
   const ctx = getAudioContext();
   if (!ctx) return;
 
-  // Try to unlock/resume context if suspended (browser autoplay policy)
-  // This is a fallback - the main unlock happens via user gesture listeners
+  // Try to unlock/resume context if suspended
   if (ctx.state === "suspended") {
     void ctx.resume();
-    // On mobile, if context is still suspended, sound won't play this time
-    // but the gesture listeners should unlock it for future sounds
+    // Don't return early - the sound might play if we're in a user gesture
+  }
+
+  // Still try to play even if suspended - it might work if we're in a gesture handler
+  if (ctx.state !== "running" && ctx.state !== "suspended") {
     return;
   }
 

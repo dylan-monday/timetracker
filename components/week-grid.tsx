@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, Plus, RefreshCw, Sparkles, Trash2 } from "lucide-react";
 import { getRandomMessage, type FooterMessage } from "@/lib/footer-messages";
 import { useAuth } from "@/components/auth-provider";
@@ -169,19 +169,8 @@ export function WeekGrid() {
   const [pinnedProjectIds, setPinnedProjectIds] = useState<string[]>([]);
   const [savedCell, setSavedCell] = useState<{ lineId: string; dayIndex: number } | null>(null);
   const [newLineIds, setNewLineIds] = useState<Set<string>>(new Set());
-  const [lineOrder, setLineOrder] = useState<string[]>(() => {
-    if (typeof window === "undefined") return [];
-    try {
-      const raw = window.localStorage.getItem(LINE_ORDER_STORAGE_KEY);
-      if (!raw) return [];
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed)
-        ? parsed.filter((item): item is string => typeof item === "string")
-        : [];
-    } catch {
-      return [];
-    }
-  });
+  const [lineOrder, setLineOrder] = useState<string[]>([]);
+  const [lineOrderLoaded, setLineOrderLoaded] = useState(false);
   const [draggedLineId, setDraggedLineId] = useState<string | null>(null);
   const [dragOverLineId, setDragOverLineId] = useState<string | null>(null);
   const activeInputRef = useRef<HTMLInputElement>(null);
@@ -239,6 +228,22 @@ export function WeekGrid() {
     }
   }, [mobileDayIndex, todayDayIndex, visibleDayIndexes]);
 
+  // Load line order from localStorage synchronously before paint
+  // Using useLayoutEffect ensures order is applied before user sees content
+  useLayoutEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(LINE_ORDER_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          setLineOrder(parsed.filter((item): item is string => typeof item === "string"));
+        }
+      }
+    } catch {
+      // Ignore errors
+    }
+    setLineOrderLoaded(true);
+  }, []);
 
   // Save line order to localStorage
   const saveLineOrder = useCallback((order: string[]) => {
@@ -250,7 +255,8 @@ export function WeekGrid() {
 
   // Sort lines based on saved order
   const sortedLines = useMemo(() => {
-    if (lineOrder.length === 0) return lines;
+    // If order not loaded yet or no saved order, return lines as-is
+    if (!lineOrderLoaded || lineOrder.length === 0) return lines;
 
     const orderMap = new Map(lineOrder.map((id, index) => [id, index]));
     return [...lines].sort((a, b) => {
@@ -258,7 +264,7 @@ export function WeekGrid() {
       const bIndex = orderMap.get(b.id) ?? Infinity;
       return aIndex - bIndex;
     });
-  }, [lines, lineOrder]);
+  }, [lines, lineOrder, lineOrderLoaded]);
 
   // Handle drag start
   const handleDragStart = useCallback((e: React.DragEvent, lineId: string) => {

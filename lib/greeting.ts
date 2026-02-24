@@ -33,6 +33,8 @@ const morningGreetings: GreetingTemplate[] = [
   { text: "Fresh start.", useName: false },
   { text: "{day}'s yours.", useName: false },
   { text: "Begin well.", useName: false },
+  { text: "The day is unclaimed. For now.", useName: false },
+  { text: "First entry of the day is the hardest.", useName: false },
 ];
 
 const afternoonGreetings: GreetingTemplate[] = [
@@ -41,6 +43,12 @@ const afternoonGreetings: GreetingTemplate[] = [
   { text: "Steady on.", useName: false },
   { text: "Keep moving.", useName: false },
   { text: "Halfway there.", useName: false },
+  { text: "Your attention is the product.", useName: false },
+  { text: "The client bought the output. You still own the hours.", useName: false },
+];
+
+const tuesdayAfternoonGreetings: GreetingTemplate[] = [
+  { text: "An honest Tuesday is worth more than a padded Friday.", useName: false },
 ];
 
 const eveningGreetings: GreetingTemplate[] = [
@@ -49,6 +57,26 @@ const eveningGreetings: GreetingTemplate[] = [
   { text: "Wrapping up.", useName: false },
   { text: "Day's end.", useName: false },
   { text: "Almost there.", useName: false },
+  { text: "What did today actually look like?", useName: false },
+  { text: "Close the loop.", useName: false },
+  { text: "Log it before it fades.", useName: false },
+];
+
+const generalGreetings: GreetingTemplate[] = [
+  { text: "Your hours. Your data.", useName: false },
+  { text: "Credit the thinking, not just the doing.", useName: false },
+  { text: "The unlogged hour still happened.", useName: false },
+  { text: "What you track, you own.", useName: false },
+  { text: "Nobody sees this but you.", useName: false },
+  { text: "The quiet work counts too.", useName: false },
+  { text: "Put it on record.", useName: false },
+  { text: "Time spent is currency. Know your balance.", useName: false },
+  { text: "The river doesn't wait.", useName: false },
+  { text: "Even clocks have a point of view.", useName: false },
+  { text: "What did this morning cost?", useName: false },
+  { text: "Every hour has an address.", useName: false },
+  { text: "The ledger is yours.", useName: false },
+  { text: "Somewhere, someone is billing for this exact moment.", useName: false },
 ];
 
 const weekContextGreetings: Record<"start" | "mid" | "end", GreetingTemplate[]> = {
@@ -72,6 +100,7 @@ const weekContextGreetings: Record<"start" | "mid" | "end", GreetingTemplate[]> 
 export function getContextualGreeting(firstName?: string): string {
   const timeOfDay = getTimeOfDay();
   const dayName = getDayName();
+  const dayOfWeek = getDayOfWeek();
   const weekProgress = getWeekProgress();
 
   // Use a seed based on date and hour to get consistent-ish rotation
@@ -86,20 +115,30 @@ export function getContextualGreeting(firstName?: string): string {
   let greetings: GreetingTemplate[];
   switch (timeOfDay) {
     case "morning":
-      greetings = morningGreetings;
+      greetings = [...morningGreetings];
       break;
     case "afternoon":
-      greetings = afternoonGreetings;
+      greetings = [...afternoonGreetings];
+      // Add Tuesday-specific greeting on Tuesdays
+      if (dayOfWeek === 2) {
+        greetings = [...greetings, ...tuesdayAfternoonGreetings];
+      }
       break;
     case "evening":
-      greetings = eveningGreetings;
+      greetings = [...eveningGreetings];
       break;
   }
 
-  // 40% chance to use week context greeting instead
+  // 40% chance to add week context greetings to the pool
   const useWeekContext = (seed % 10) < 4;
   if (useWeekContext) {
     greetings = [...greetings, ...weekContextGreetings[weekProgress]];
+  }
+
+  // 30% chance to add general greetings to the pool
+  const useGeneral = (seed % 10) >= 4 && (seed % 10) < 7;
+  if (useGeneral) {
+    greetings = [...greetings, ...generalGreetings];
   }
 
   // Filter out name-based greetings if no name available
