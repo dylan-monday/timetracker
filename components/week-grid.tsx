@@ -1288,6 +1288,7 @@ export function WeekGrid({ weekStart, onWeekChange }: WeekGridProps) {
                   allowCreate
                   createLabel="Add new client"
                   autoFocus
+                  dropUp
                 />
               </div>
               <div className="block">
@@ -1302,6 +1303,7 @@ export function WeekGrid({ weekStart, onWeekChange }: WeekGridProps) {
                   placeholder="Type to search or create..."
                   allowCreate
                   createLabel="Add new project"
+                  dropUp
                 />
               </div>
             </div>
@@ -1360,6 +1362,7 @@ export function WeekGrid({ weekStart, onWeekChange }: WeekGridProps) {
                   allowCreate
                   createLabel="Add new client"
                   autoFocus
+                  dropUp
                 />
               </div>
 
@@ -1381,6 +1384,7 @@ export function WeekGrid({ weekStart, onWeekChange }: WeekGridProps) {
                   placeholder="Type to search or create..."
                   allowCreate
                   createLabel="Add new project"
+                  dropUp
                 />
               </div>
             </div>

@@ -17,6 +17,7 @@ interface ComboBoxProps {
   createLabel?: string;
   disabled?: boolean;
   autoFocus?: boolean;
+  dropUp?: boolean;
 }
 
 export function ComboBox({
@@ -27,7 +28,8 @@ export function ComboBox({
   allowCreate = true,
   createLabel = "Create",
   disabled = false,
-  autoFocus = false
+  autoFocus = false,
+  dropUp = false
 }: ComboBoxProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
@@ -181,7 +183,11 @@ export function ComboBox({
           ref={listRef}
           id="combobox-listbox"
           role="listbox"
-          className="absolute left-0 right-0 z-50 max-h-48 overflow-auto rounded-xl border border-black/10 bg-white py-1 shadow-lg bottom-full mb-1 sm:bottom-auto sm:top-full sm:mb-0 sm:mt-1"
+          className={`absolute left-0 right-0 z-50 max-h-48 overflow-auto rounded-xl border border-black/10 bg-white py-1 shadow-lg ${
+            dropUp
+              ? "bottom-full mb-1"
+              : "bottom-full mb-1 sm:bottom-auto sm:top-full sm:mb-0 sm:mt-1"
+          }`}
         >
           {filteredOptions.map((option, index) => {
             const isHighlighted = index === highlightedIndex;
