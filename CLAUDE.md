@@ -6,9 +6,11 @@
 **Production**: https://time.mondayandpartners.com
 **Repo**: https://github.com/dylan-monday/timetracker.git
 
-## What This App Does
+## What This App Is
 
-A premium, lightweight time tracker for Monday + Partners (currently single user: Dylan). Not accounting software - it's a personal instrument for tracking where time goes and understanding its value.
+A personal instrument for understanding where time goes and what it's worth. Built for Dylan at Monday + Partners. Not accounting software, not a timesheet, not a productivity tool in the conventional sense.
+
+The core idea: honest awareness of how you spend your attention creates better decisions about how to spend it next. Time tracking is the input. Self-knowledge is the output.
 
 ### Core Workflows
 
@@ -150,16 +152,11 @@ CRON_SECRET
 
 ## Performance
 
-**Optimizations in place:**
 - Database indexes on frequently queried columns (see `supabase/schema.sql`)
 - Optimistic UI updates for time entries
 - `useMemo` for expensive calculations (`totalsByDay`, `filteredProjects`, etc.)
 - Parallel data fetching with `Promise.all`
 - Ref pattern for `pinnedProjectIds` to avoid unnecessary re-renders
-
-**Known issues:**
-- N+1 query pattern in `lib/server/time-report.ts` (email reports) - acceptable for single user
-- `week-grid.tsx` is large (~1500 lines) - could be split into smaller components
 
 ## Known Limitations
 
@@ -168,18 +165,35 @@ CRON_SECRET
 3. **Single user**: Currently designed for Dylan only, no multi-tenancy
 4. **Admin UI**: Client-side check only (add server middleware if multi-user)
 
-## Recent Work (Feb 2026)
+## Known Issues
 
-- Week navigation: view/edit any past week via prev/next arrows
-- URL-based week state (`?start=YYYY-MM-DD`)
-- Date format shows month: "Tue 2/24" not "Tue 24"
-- Animated gradient logo using CSS mask
-- Row order syncs to Supabase for cross-device persistence
-- Contextual greetings based on time of day and user name
-- Crystalline bell sounds for UI feedback (desktop only)
-- Mobile ComboBox: dropdown appears above, 16px font prevents iOS zoom
-- Performance: ref pattern for pinnedProjectIds, useMemo for totalsByDay
-- Added calendar sync indexes (migration: `2026-02-24_add_calendar_sync_indexes.sql`)
+- `week-grid.tsx` is large (~1500 lines) - could be split into smaller components
+- N+1 query pattern in `lib/server/time-report.ts` (email reports) - acceptable for single user
+- Calendar drafts: unmapped events are skipped during sync, not forced to be mapped or rejected
+- "Copy last week" button exists in UI but is not wired up
+
+## Where This Can Go
+
+The time tracker works. The question now is what it becomes. The foundation supports something more ambitious than a weekly grid.
+
+### Personal Value Intelligence
+- **Effective rate trends**: Not just "hours worked" but "what was an hour of my time worth this month vs last?"
+- **Energy mapping**: Which projects/clients correlate with high-output weeks vs draining ones?
+- **Portfolio balance**: Am I investing enough in internal/personal work, or am I fully reactive to client demands?
+
+### Reflection & Development
+- **Weekly reflection prompts**: End-of-week questions tied to the data ("You spent 12h on X this week. Was that intentional?")
+- **Goal tracking against time**: "I want to spend 20% on personal development" - am I actually doing it?
+- **Narrative journaling**: Brief notes attached to weeks/days, not just hours
+- **Patterns over time**: Surface recurring patterns ("You always undertrack Fridays", "Q1 is always client-heavy")
+
+### Smarter Automation
+- **Calendar-to-project learning**: After enough approvals, suggest mappings automatically
+- **Weekly email that tells a story**: Not just hours, but insights ("Your client mix shifted this month")
+- **Anomaly detection**: Flag weeks that look unusual compared to your baseline
+
+### The Bigger Picture
+This could become a personal operating system for a solo practitioner - the place where you understand not just what you did, but whether what you did aligns with who you want to be professionally. Time is the raw data. The value is in the reflection.
 
 ## Development
 
