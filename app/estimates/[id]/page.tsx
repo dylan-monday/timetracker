@@ -807,7 +807,7 @@ export default function EstimateBuilderPage() {
                       type="text"
                       value={markupPercent}
                       onChange={(e) => setMarkupPercent(e.target.value)}
-                      className="w-10 rounded border border-black/10 bg-white px-1 py-0.5 text-center font-mono text-xs"
+                      className="w-10 rounded-lg border border-black/15 bg-canvas px-1 py-0.5 text-center font-mono text-xs focus:border-black/30 focus:outline-none"
                     />
                     <span className="text-muted">%</span>
                   </div>
@@ -832,7 +832,7 @@ export default function EstimateBuilderPage() {
                       type="text"
                       value={contingencyPercent}
                       onChange={(e) => setContingencyPercent(e.target.value)}
-                      className="w-10 rounded border border-black/10 bg-white px-1 py-0.5 text-center font-mono text-xs"
+                      className="w-10 rounded-lg border border-black/15 bg-canvas px-1 py-0.5 text-center font-mono text-xs focus:border-black/30 focus:outline-none"
                     />
                     <span className="text-muted">%</span>
                   </div>
@@ -1139,7 +1139,7 @@ function LineItemRow({
           onChange={(e) => setHours(e.target.value)}
           onBlur={() => onUpdate({ hours: parseHours(hours) })}
           placeholder="0"
-          className="w-full rounded-lg border border-black/10 bg-white px-2 py-1.5 text-right font-mono text-sm placeholder:text-muted/50 focus:border-black/30 focus:outline-none"
+          className="w-full rounded-lg border border-black/15 bg-canvas px-2 py-1.5 text-right font-mono text-sm focus:border-black/30 focus:outline-none"
         />
       </div>
 
@@ -1155,7 +1155,7 @@ function LineItemRow({
             onChange={(e) => setRate(e.target.value)}
             onBlur={() => onUpdate({ hourlyRateCents: parseDollars(rate) })}
             placeholder="0"
-            className="w-full rounded-lg border border-black/10 bg-white py-1.5 pl-5 pr-2 text-right font-mono text-sm placeholder:text-muted/50 focus:border-black/30 focus:outline-none"
+            className="w-full rounded-lg border border-black/15 bg-canvas py-1.5 pl-5 pr-2 text-right font-mono text-sm focus:border-black/30 focus:outline-none"
           />
         </div>
       </div>
@@ -1198,7 +1198,7 @@ function HardCostRow({
         onChange={(e) => setDescription(e.target.value)}
         onBlur={() => onUpdate({ description })}
         placeholder="Description..."
-        className="flex-1 rounded-lg border border-black/10 bg-white px-3 py-1.5 text-sm placeholder:text-muted/50 focus:border-black/30 focus:outline-none"
+        className="flex-1 rounded-lg border border-black/15 bg-canvas px-2 py-1.5 text-sm focus:border-black/30 focus:outline-none"
       />
 
       <div className="relative w-28">
@@ -1211,7 +1211,7 @@ function HardCostRow({
           onChange={(e) => setAmount(e.target.value)}
           onBlur={() => onUpdate({ amountCents: parseDollars(amount) })}
           placeholder="0"
-          className="w-full rounded-lg border border-black/10 bg-white py-1.5 pl-5 pr-2 text-right font-mono text-sm placeholder:text-muted/50 focus:border-black/30 focus:outline-none"
+          className="w-full rounded-lg border border-black/15 bg-canvas py-1.5 pl-5 pr-2 text-right font-mono text-sm focus:border-black/30 focus:outline-none"
         />
       </div>
 
