@@ -136,6 +136,7 @@ export interface Estimate {
   ownerId: string;
   name: string;
   status: EstimateStatus;
+  clientId: string | null;
   projectId: string | null;
   markupPercent: number;
   contingencyPercent: number;
@@ -146,6 +147,11 @@ export interface Estimate {
   phases?: EstimatePhase[];
   hardCosts?: EstimateHardCost[];
   // Joined data
+  client?: {
+    id: string;
+    name: string;
+    kind: ClientKind;
+  } | null;
   project?: {
     id: string;
     name: string;

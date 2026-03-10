@@ -90,6 +90,7 @@ export default function EstimatesPage() {
         supabase,
         user.id,
         "New Estimate",
+        null, // clientId - selected later
         DEFAULT_PHASE_NAMES
       );
       router.push(`/estimates/${estimateId}`);
@@ -234,9 +235,10 @@ function EstimateCard({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <h3 className="truncate font-medium text-ink">{estimate.name}</h3>
-          {estimate.projectName && (
+          {(estimate.clientName || estimate.projectName) && (
             <p className="mt-0.5 truncate text-sm text-muted">
-              {estimate.clientName && `${estimate.clientName} · `}
+              {estimate.clientName}
+              {estimate.clientName && estimate.projectName && " · "}
               {estimate.projectName}
             </p>
           )}

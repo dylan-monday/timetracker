@@ -20,6 +20,7 @@ import {
   fetchEstimateTracking,
   updateEstimate,
   deleteEstimate,
+  createProjectFromEstimate,
   createPhase,
   updatePhase,
   deletePhase,
@@ -35,6 +36,7 @@ import {
 import { fetchClientsAndProjects } from "@/lib/supabase/week";
 import type {
   AgencyRole,
+  ClientOption,
   Estimate,
   EstimateCalculation,
   EstimateHardCost,
@@ -102,6 +104,7 @@ export default function EstimateBuilderPage() {
 
   const [estimate, setEstimate] = useState<Estimate | null>(null);
   const [agencyRoles, setAgencyRoles] = useState<AgencyRole[]>([]);
+  const [clients, setClients] = useState<ClientOption[]>([]);
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [tracking, setTracking] = useState<{
     estimatedHours: number;
@@ -117,6 +120,7 @@ export default function EstimateBuilderPage() {
   // Local form state
   const [name, setName] = useState("");
   const [status, setStatus] = useState<EstimateStatus>("draft");
+  const [clientId, setClientId] = useState<string | null>(null);
   const [projectId, setProjectId] = useState<string | null>(null);
   const [markupPercent, setMarkupPercent] = useState("15");
   const [contingencyPercent, setContingencyPercent] = useState("10");
@@ -133,7 +137,7 @@ export default function EstimateBuilderPage() {
       // Ensure default agency roles exist
       await ensureDefaultAgencyRoles(supabase, user.id);
 
-      const [est, roles, { projects: proj }] = await Promise.all([
+      const [est, roles, { clients: cli, projects: proj }] = await Promise.all([
         fetchEstimate(supabase, estimateId),
         fetchAgencyRoles(supabase),
         fetchClientsAndProjects(supabase),
@@ -147,6 +151,7 @@ export default function EstimateBuilderPage() {
 
       setEstimate(est);
       setAgencyRoles(roles);
+      setClients(cli);
       setProjects(proj);
 
       // Fetch tracking data if live and linked to project
@@ -160,6 +165,7 @@ export default function EstimateBuilderPage() {
       // Initialize form state
       setName(est.name);
       setStatus(est.status);
+      setClientId(est.clientId);
       setProjectId(est.projectId);
       setMarkupPercent(est.markupPercent.toString());
       setContingencyPercent(est.contingencyPercent.toString());
@@ -200,12 +206,16 @@ export default function EstimateBuilderPage() {
     setError(null);
 
     try {
+      const parsedMarkup = parseFloat(markupPercent);
+      const parsedContingency = parseFloat(contingencyPercent);
+
       await updateEstimate(supabase, estimate.id, {
         name,
         status,
+        clientId,
         projectId,
-        markupPercent: parseFloat(markupPercent) || 15,
-        contingencyPercent: parseFloat(contingencyPercent) || 10,
+        markupPercent: Number.isFinite(parsedMarkup) ? parsedMarkup : 15,
+        contingencyPercent: Number.isFinite(parsedContingency) ? parsedContingency : 10,
         notes: notes || null,
       });
 
@@ -235,6 +245,53 @@ export default function EstimateBuilderPage() {
       router.push("/estimates");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete estimate");
+      setSaving(false);
+    }
+  };
+
+  // Go live - creates a project and links estimate
+  const handleGoLive = async () => {
+    if (!supabase || !estimate || !user) return;
+
+    if (!clientId) {
+      setError("Please select a client before going live.");
+      return;
+    }
+
+    if (!name.trim()) {
+      setError("Please give this estimate a name before going live.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Create project "${name}" and mark this estimate as live? The project will be added to your timesheet.`
+    );
+    if (!confirmed) return;
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      // Save any pending changes first
+      const parsedMarkup = parseFloat(markupPercent);
+      const parsedContingency = parseFloat(contingencyPercent);
+
+      await updateEstimate(supabase, estimate.id, {
+        name,
+        clientId,
+        markupPercent: Number.isFinite(parsedMarkup) ? parsedMarkup : 15,
+        contingencyPercent: Number.isFinite(parsedContingency) ? parsedContingency : 10,
+        notes: notes || null,
+      });
+
+      // Create project and go live
+      await createProjectFromEstimate(supabase, user.id, estimate.id, name, clientId);
+
+      // Refresh to get updated state
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to go live");
+    } finally {
       setSaving(false);
     }
   };
@@ -506,52 +563,80 @@ export default function EstimateBuilderPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Estimate name..."
-                  className="w-full border-0 bg-transparent text-2xl font-display tracking-tight text-ink placeholder:text-muted/50 focus:outline-none"
+                  disabled={status === "live"}
+                  className="w-full border-0 bg-transparent text-2xl font-display tracking-tight text-ink placeholder:text-muted/50 focus:outline-none disabled:cursor-not-allowed"
                 />
                 <div className="flex flex-wrap items-center gap-3">
+                  {/* Client selector */}
                   <select
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value as EstimateStatus)}
-                    className="rounded-lg border border-black/10 bg-white px-3 py-1.5 text-sm"
+                    value={clientId ?? ""}
+                    onChange={(e) => setClientId(e.target.value || null)}
+                    disabled={status === "live"}
+                    className="rounded-lg border border-black/10 bg-white px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <option value="draft">Draft</option>
-                    <option value="live">Live</option>
-                    <option value="archived">Archived</option>
+                    <option value="">Select client...</option>
+                    {clients.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
                   </select>
 
+                  {/* Status badge and actions */}
+                  {status === "draft" && (
+                    <>
+                      <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700">
+                        Draft
+                      </span>
+                      <button
+                        onClick={handleGoLive}
+                        disabled={saving || !clientId || !name.trim()}
+                        className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white transition-all hover:bg-emerald-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Go Live
+                      </button>
+                    </>
+                  )}
+
                   {status === "live" && (
-                    <select
-                      value={projectId ?? ""}
-                      onChange={(e) =>
-                        setProjectId(e.target.value || null)
-                      }
-                      className="rounded-lg border border-black/10 bg-white px-3 py-1.5 text-sm"
-                    >
-                      <option value="">Link to project...</option>
-                      {projects.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.clientName} / {p.name}
-                        </option>
-                      ))}
-                    </select>
+                    <>
+                      <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+                        Live
+                      </span>
+                      {estimate.project && (
+                        <span className="text-sm text-muted">
+                          → {estimate.project.clientName} / {estimate.project.name}
+                        </span>
+                      )}
+                    </>
+                  )}
+
+                  {status === "archived" && (
+                    <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
+                      Archived
+                    </span>
                   )}
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={handleSaveHeader}
-                  disabled={saving}
-                  className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-ink/90 active:scale-[0.98] disabled:opacity-50"
-                >
-                  {saving ? "Saving..." : "Save"}
-                </button>
-                <button
-                  onClick={handleDelete}
-                  disabled={saving}
-                  className="rounded-full border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 transition-all hover:bg-red-100 active:scale-[0.98] disabled:opacity-50"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                {status === "draft" && (
+                  <button
+                    onClick={handleSaveHeader}
+                    disabled={saving}
+                    className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-ink/90 active:scale-[0.98] disabled:opacity-50"
+                  >
+                    {saving ? "Saving..." : "Save"}
+                  </button>
+                )}
+                {status !== "live" && (
+                  <button
+                    onClick={handleDelete}
+                    disabled={saving}
+                    className="rounded-full border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 transition-all hover:bg-red-100 active:scale-[0.98] disabled:opacity-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
               </div>
             </div>
           </section>

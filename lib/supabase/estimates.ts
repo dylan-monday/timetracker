@@ -85,10 +85,12 @@ export async function fetchEstimatesList(
       id,
       name,
       status,
+      client_id,
       project_id,
       created_at,
       updated_at,
-      projects(name,clients(name)),
+      clients(name),
+      projects(name),
       estimate_phases(
         id,
         estimate_line_items(hours,hourly_rate_cents)
@@ -100,8 +102,8 @@ export async function fetchEstimatesList(
   if (error) throw error;
 
   return (estimates ?? []).map((est) => {
+    const client = Array.isArray(est.clients) ? est.clients[0] : est.clients;
     const project = Array.isArray(est.projects) ? est.projects[0] : est.projects;
-    const client = project ? (Array.isArray(project.clients) ? project.clients[0] : project.clients) : null;
 
     // Calculate totals
     let laborCents = 0;
@@ -151,12 +153,14 @@ export async function fetchEstimate(
       owner_id,
       name,
       status,
+      client_id,
       project_id,
       markup_percent,
       contingency_percent,
       notes,
       created_at,
       updated_at,
+      clients(id,name,kind),
       projects(id,name,clients(name)),
       estimate_phases(
         id,
@@ -188,8 +192,9 @@ export async function fetchEstimate(
   if (error) throw error;
   if (!data) return null;
 
+  const client = Array.isArray(data.clients) ? data.clients[0] : data.clients;
   const project = Array.isArray(data.projects) ? data.projects[0] : data.projects;
-  const client = project ? (Array.isArray(project.clients) ? project.clients[0] : project.clients) : null;
+  const projectClient = project ? (Array.isArray(project.clients) ? project.clients[0] : project.clients) : null;
 
   const phases: EstimatePhase[] = (data.estimate_phases ?? [])
     .sort((a, b) => a.sort_order - b.sort_order)
@@ -227,6 +232,7 @@ export async function fetchEstimate(
     ownerId: data.owner_id,
     name: data.name,
     status: data.status as EstimateStatus,
+    clientId: data.client_id,
     projectId: data.project_id,
     markupPercent: Number(data.markup_percent),
     contingencyPercent: Number(data.contingency_percent),
@@ -235,11 +241,18 @@ export async function fetchEstimate(
     updatedAt: data.updated_at,
     phases,
     hardCosts,
+    client: client
+      ? {
+          id: client.id,
+          name: client.name,
+          kind: client.kind,
+        }
+      : null,
     project: project
       ? {
           id: project.id,
           name: project.name,
-          clientName: client?.name ?? "Unknown",
+          clientName: projectClient?.name ?? "Unknown",
         }
       : null,
   };
@@ -253,6 +266,7 @@ export async function createEstimate(
   supabase: SupabaseClient,
   userId: string,
   name: string,
+  clientId?: string | null,
   initialPhaseNames?: readonly string[]
 ): Promise<string> {
   // Create the estimate
@@ -261,6 +275,7 @@ export async function createEstimate(
     .insert({
       owner_id: userId,
       name,
+      client_id: clientId ?? null,
       status: "draft",
       markup_percent: 15,
       contingency_percent: 10,
@@ -295,6 +310,7 @@ export async function updateEstimate(
   updates: {
     name?: string;
     status?: EstimateStatus;
+    clientId?: string | null;
     projectId?: string | null;
     markupPercent?: number;
     contingencyPercent?: number;
@@ -305,6 +321,7 @@ export async function updateEstimate(
 
   if (updates.name !== undefined) payload.name = updates.name;
   if (updates.status !== undefined) payload.status = updates.status;
+  if (updates.clientId !== undefined) payload.client_id = updates.clientId;
   if (updates.projectId !== undefined) payload.project_id = updates.projectId;
   if (updates.markupPercent !== undefined) payload.markup_percent = updates.markupPercent;
   if (updates.contingencyPercent !== undefined) payload.contingency_percent = updates.contingencyPercent;
@@ -328,6 +345,45 @@ export async function deleteEstimate(
     .eq("id", estimateId);
 
   if (error) throw error;
+}
+
+/**
+ * Creates a project from an estimate and links them.
+ * Called when estimate status changes to "live".
+ */
+export async function createProjectFromEstimate(
+  supabase: SupabaseClient,
+  userId: string,
+  estimateId: string,
+  projectName: string,
+  clientId: string
+): Promise<string> {
+  // Create the project
+  const { data: project, error: projectError } = await supabase
+    .from("projects")
+    .insert({
+      owner_id: userId,
+      client_id: clientId,
+      name: projectName,
+      active: true,
+    })
+    .select("id")
+    .single();
+
+  if (projectError) throw projectError;
+
+  // Link estimate to the new project and set status to live
+  const { error: updateError } = await supabase
+    .from("estimates")
+    .update({
+      project_id: project.id,
+      status: "live",
+    })
+    .eq("id", estimateId);
+
+  if (updateError) throw updateError;
+
+  return project.id;
 }
 
 // ─────────────────────────────────────────────────────────────────
