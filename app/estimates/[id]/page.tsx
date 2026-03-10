@@ -35,17 +35,18 @@ import {
   ensureDefaultAgencyRoles,
 } from "@/lib/supabase/estimates";
 import { fetchClientsAndProjects } from "@/lib/supabase/week";
-import type {
-  AgencyRole,
-  ClientOption,
-  Estimate,
-  EstimateCalculation,
-  EstimateHardCost,
-  EstimateLineItem,
-  EstimatePhase,
-  EstimateStatus,
-  ProfileOption,
-  ProjectOption,
+import {
+  DEFAULT_PHASE_NAMES,
+  type AgencyRole,
+  type ClientOption,
+  type Estimate,
+  type EstimateCalculation,
+  type EstimateHardCost,
+  type EstimateLineItem,
+  type EstimatePhase,
+  type EstimateStatus,
+  type ProfileOption,
+  type ProjectOption,
 } from "@/lib/types";
 
 // ─────────────────────────────────────────────────────────────────
@@ -794,7 +795,7 @@ export default function EstimateBuilderPage() {
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted">Labor subtotal</span>
-                  <span className="font-medium">
+                  <span className="font-medium font-mono">
                     {formatCents(calculation?.laborSubtotalCents ?? 0)}
                   </span>
                 </div>
@@ -806,11 +807,11 @@ export default function EstimateBuilderPage() {
                       type="text"
                       value={markupPercent}
                       onChange={(e) => setMarkupPercent(e.target.value)}
-                      className="w-12 rounded border border-black/10 bg-white px-1.5 py-0.5 text-center text-xs"
+                      className="w-10 rounded border border-black/10 bg-white px-1 py-0.5 text-center font-mono text-xs"
                     />
                     <span className="text-muted">%</span>
                   </div>
-                  <span className="font-medium text-emerald-600">
+                  <span className="font-medium font-mono text-emerald-600">
                     +{formatCents(calculation?.markupCents ?? 0)}
                   </span>
                 </div>
@@ -818,7 +819,7 @@ export default function EstimateBuilderPage() {
                 <div className="border-t border-black/5 pt-3">
                   <div className="flex justify-between">
                     <span className="text-muted">Labor total</span>
-                    <span className="font-medium">
+                    <span className="font-medium font-mono">
                       {formatCents(calculation?.laborWithMarkupCents ?? 0)}
                     </span>
                   </div>
@@ -831,11 +832,11 @@ export default function EstimateBuilderPage() {
                       type="text"
                       value={contingencyPercent}
                       onChange={(e) => setContingencyPercent(e.target.value)}
-                      className="w-12 rounded border border-black/10 bg-white px-1.5 py-0.5 text-center text-xs"
+                      className="w-10 rounded border border-black/10 bg-white px-1 py-0.5 text-center font-mono text-xs"
                     />
                     <span className="text-muted">%</span>
                   </div>
-                  <span className="font-medium text-emerald-600">
+                  <span className="font-medium font-mono text-emerald-600">
                     +{formatCents(calculation?.contingencyCents ?? 0)}
                   </span>
                 </div>
@@ -843,7 +844,7 @@ export default function EstimateBuilderPage() {
                 <div className="border-t border-black/5 pt-3">
                   <div className="flex justify-between">
                     <span className="text-muted">Labor + contingency</span>
-                    <span className="font-medium">
+                    <span className="font-medium font-mono">
                       {formatCents(calculation?.laborPlusContingencyCents ?? 0)}
                     </span>
                   </div>
@@ -851,7 +852,7 @@ export default function EstimateBuilderPage() {
 
                 <div className="flex justify-between">
                   <span className="text-muted">Hard costs</span>
-                  <span className="font-medium">
+                  <span className="font-medium font-mono">
                     +{formatCents(calculation?.hardCostsTotalCents ?? 0)}
                   </span>
                 </div>
@@ -861,14 +862,14 @@ export default function EstimateBuilderPage() {
                     <span className="text-lg font-medium text-ink">
                       Project Total
                     </span>
-                    <span className="text-lg font-bold text-ink">
+                    <span className="text-lg font-bold font-mono text-ink">
                       {formatCents(calculation?.projectTotalCents ?? 0)}
                     </span>
                   </div>
                 </div>
 
                 <div className="mt-2 text-xs text-muted">
-                  {calculation?.totalEstimatedHours ?? 0} total hours estimated
+                  <span className="font-mono">{calculation?.totalEstimatedHours ?? 0}</span> total hours estimated
                 </div>
               </div>
             </section>
@@ -919,6 +920,16 @@ function PhaseCard({
 }) {
   const [nameValue, setNameValue] = useState(phase.name);
 
+  // Phase name options from defaults
+  const phaseNameOptions = useMemo(
+    () =>
+      DEFAULT_PHASE_NAMES.map((name, idx) => ({
+        id: `phase-${idx}`,
+        label: name,
+      })),
+    []
+  );
+
   // Calculate phase subtotal
   const phaseSubtotal = phase.lineItems.reduce(
     (sum, item) => sum + item.hours * item.hourlyRateCents,
@@ -929,6 +940,13 @@ function PhaseCard({
     (sum, item) => sum + item.hours,
     0
   );
+
+  const handleNameChange = (newName: string) => {
+    setNameValue(newName);
+    if (newName !== phase.name) {
+      onUpdateName(newName);
+    }
+  };
 
   return (
     <div className="rounded-xl border border-black/5 bg-panel shadow-soft">
@@ -945,21 +963,19 @@ function PhaseCard({
           )}
         </button>
 
-        <input
-          type="text"
-          value={nameValue}
-          onChange={(e) => setNameValue(e.target.value)}
-          onBlur={() => {
-            if (nameValue !== phase.name) {
-              onUpdateName(nameValue);
-            }
-          }}
-          className="flex-1 border-0 bg-transparent font-medium text-ink placeholder:text-muted/50 focus:outline-none"
-          placeholder="Phase name..."
-        />
+        <div className="flex-1">
+          <ComboBox
+            options={phaseNameOptions}
+            value={nameValue}
+            onChange={handleNameChange}
+            placeholder="Select or type phase name..."
+            allowCreate={true}
+            createLabel="Custom phase"
+          />
+        </div>
 
         <div className="flex items-center gap-3 text-sm text-muted">
-          <span>{phaseHours}h</span>
+          <span className="font-mono">{phaseHours}h</span>
           <span className="font-medium text-ink">{formatCents(phaseSubtotal)}</span>
         </div>
 
@@ -975,12 +991,12 @@ function PhaseCard({
       {expanded && (
         <div className="border-t border-black/5">
           {/* Header row */}
-          <div className="grid grid-cols-12 gap-2 px-4 py-2 text-xs font-medium uppercase tracking-wide text-muted">
-            <div className="col-span-4">Role</div>
-            <div className="col-span-3">Person</div>
-            <div className="col-span-2 text-right">Hours</div>
-            <div className="col-span-2 text-right">Rate</div>
-            <div className="col-span-1"></div>
+          <div className="grid grid-cols-[1fr_1fr_4rem_5rem_4.5rem] gap-2 px-4 py-2 text-xs font-medium uppercase tracking-wide text-muted">
+            <div>Role</div>
+            <div>Person</div>
+            <div className="text-right">Hours</div>
+            <div className="text-right">Rate</div>
+            <div></div>
           </div>
 
           {/* Line items */}
@@ -1091,9 +1107,9 @@ function LineItemRow({
   };
 
   return (
-    <div className="grid grid-cols-12 items-center gap-2 px-4 py-2">
+    <div className="grid grid-cols-[1fr_1fr_4rem_5rem_4.5rem] items-center gap-2 px-4 py-2">
       {/* Role */}
-      <div className="col-span-4">
+      <div>
         <ComboBox
           options={roleOptions}
           value={roleName}
@@ -1105,7 +1121,7 @@ function LineItemRow({
       </div>
 
       {/* Person */}
-      <div className="col-span-3">
+      <div>
         <ComboBox
           options={personOptions}
           value={personName}
@@ -1116,21 +1132,21 @@ function LineItemRow({
       </div>
 
       {/* Hours */}
-      <div className="col-span-2">
+      <div>
         <input
           type="text"
           value={hours}
           onChange={(e) => setHours(e.target.value)}
           onBlur={() => onUpdate({ hours: parseHours(hours) })}
           placeholder="0"
-          className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-right text-sm placeholder:text-muted/50 focus:border-black/30 focus:outline-none"
+          className="w-full rounded-lg border border-black/10 bg-white px-2 py-1.5 text-right font-mono text-sm placeholder:text-muted/50 focus:border-black/30 focus:outline-none"
         />
       </div>
 
       {/* Rate */}
-      <div className="col-span-2">
+      <div>
         <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted">
+          <span className="absolute left-2 top-1/2 -translate-y-1/2 font-mono text-sm text-muted">
             $
           </span>
           <input
@@ -1139,14 +1155,14 @@ function LineItemRow({
             onChange={(e) => setRate(e.target.value)}
             onBlur={() => onUpdate({ hourlyRateCents: parseDollars(rate) })}
             placeholder="0"
-            className="w-full rounded-xl border border-black/10 bg-white py-2 pl-7 pr-3 text-right text-sm placeholder:text-muted/50 focus:border-black/30 focus:outline-none"
+            className="w-full rounded-lg border border-black/10 bg-white py-1.5 pl-5 pr-2 text-right font-mono text-sm placeholder:text-muted/50 focus:border-black/30 focus:outline-none"
           />
         </div>
       </div>
 
       {/* Delete + total */}
-      <div className="col-span-1 flex items-center justify-end gap-2">
-        <span className="text-xs text-muted">{formatCents(lineTotal)}</span>
+      <div className="flex items-center justify-end gap-1">
+        <span className="font-mono text-xs text-muted">{formatCents(lineTotal)}</span>
         <button
           onClick={onDelete}
           className="rounded p-1 text-muted hover:bg-red-50 hover:text-red-600"
@@ -1182,11 +1198,11 @@ function HardCostRow({
         onChange={(e) => setDescription(e.target.value)}
         onBlur={() => onUpdate({ description })}
         placeholder="Description..."
-        className="flex-1 rounded-xl border border-black/10 bg-white px-3 py-2 text-sm placeholder:text-muted/50 focus:border-black/30 focus:outline-none"
+        className="flex-1 rounded-lg border border-black/10 bg-white px-3 py-1.5 text-sm placeholder:text-muted/50 focus:border-black/30 focus:outline-none"
       />
 
-      <div className="relative w-32">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted">
+      <div className="relative w-28">
+        <span className="absolute left-2 top-1/2 -translate-y-1/2 font-mono text-sm text-muted">
           $
         </span>
         <input
@@ -1195,7 +1211,7 @@ function HardCostRow({
           onChange={(e) => setAmount(e.target.value)}
           onBlur={() => onUpdate({ amountCents: parseDollars(amount) })}
           placeholder="0"
-          className="w-full rounded-xl border border-black/10 bg-white py-2 pl-7 pr-3 text-right text-sm placeholder:text-muted/50 focus:border-black/30 focus:outline-none"
+          className="w-full rounded-lg border border-black/10 bg-white py-1.5 pl-5 pr-2 text-right font-mono text-sm placeholder:text-muted/50 focus:border-black/30 focus:outline-none"
         />
       </div>
 
