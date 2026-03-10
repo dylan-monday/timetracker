@@ -8,6 +8,7 @@ import { useAuth } from "@/components/auth-provider";
 import { fetchEstimatesList, createEstimate } from "@/lib/supabase/estimates";
 import type { EstimateListItem, EstimateStatus } from "@/lib/types";
 import { getContextualGreeting, extractFirstName } from "@/lib/greeting";
+import { playSound } from "@/lib/sounds";
 
 function formatCents(cents: number): string {
   return new Intl.NumberFormat("en-US", {
@@ -172,7 +173,10 @@ export default function EstimatesPage() {
                   <EstimateCard
                     key={estimate.id}
                     estimate={estimate}
-                    onClick={() => router.push(`/estimates/${estimate.id}`)}
+                    onClick={() => {
+                      playSound("openEstimate");
+                      router.push(`/estimates/${estimate.id}`);
+                    }}
                   />
                 ))}
               </div>
@@ -190,7 +194,10 @@ export default function EstimatesPage() {
                   <EstimateCard
                     key={estimate.id}
                     estimate={estimate}
-                    onClick={() => router.push(`/estimates/${estimate.id}`)}
+                    onClick={() => {
+                      playSound("openEstimate");
+                      router.push(`/estimates/${estimate.id}`);
+                    }}
                   />
                 ))}
               </div>
@@ -208,7 +215,10 @@ export default function EstimatesPage() {
                   <EstimateCard
                     key={estimate.id}
                     estimate={estimate}
-                    onClick={() => router.push(`/estimates/${estimate.id}`)}
+                    onClick={() => {
+                      playSound("openEstimate");
+                      router.push(`/estimates/${estimate.id}`);
+                    }}
                   />
                 ))}
               </div>

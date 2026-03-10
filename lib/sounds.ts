@@ -160,6 +160,9 @@ export const sounds = {
   // Navigation: Estimates - aspirational, forward-looking (planning work)
   navEstimates: () => playBell({ frequency: 233, duration: 2.3, volume: 0.09, warmth: 0.65 }), // Bb3
 
+  // Opening an estimate - slightly higher, anticipatory
+  openEstimate: () => playBell({ frequency: 311, duration: 2.0, volume: 0.09, warmth: 0.6 }), // Eb4
+
   // Deep resonant bell - for adding new items
   add: () => playBell({ frequency: 175, duration: 3.0, volume: 0.11, warmth: 0.8 }), // F3
 
