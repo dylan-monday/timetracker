@@ -34,7 +34,17 @@ The core idea: honest awareness of how you spend your attention creates better d
    - Project value = hours × effective rate
    - Budget tracking when budget exists
 
-4. **Settings** (`/admin`) - Management
+4. **Estimates** (`/estimates`) - Project Fee Proposals
+   - Build project fee estimates before client proposals
+   - Phases (Immersion, Concept Development, Creative Development, Production, Post Production)
+   - Line items per phase: Role + Person (optional) + Hours + Rate
+   - Hard costs section (pass-through, no markup)
+   - Markup % (default 15%) + Contingency % (default 10%)
+   - Status flow: Draft → Live → Archived
+   - When Live: link to project, track actual hours vs estimated hours
+   - Owner-only feature (future employees won't see estimates)
+
+5. **Settings** (`/admin`) - Management
    - Clients (external/internal), projects, rates, budgets
    - Calendar feed sources (iCal URLs)
    - Project merge (forward-only from effective date)
@@ -54,9 +64,13 @@ The core idea: honest awareness of how you spend your attention creates better d
 | Time parsing | `lib/time.ts` |
 | Trends page | `app/trends/page.tsx` |
 | Admin/Settings | `app/admin/page.tsx` |
+| Estimates list | `app/estimates/page.tsx` |
+| Estimate builder | `app/estimates/[id]/page.tsx` |
+| Estimates data/API | `lib/supabase/estimates.ts` |
 | Calendar sync API | `app/api/calendar/sync/route.ts` |
 | Types | `lib/types.ts` |
 | DB schema | `supabase/schema.sql` |
+| Estimates migration | `supabase/migrations/2026-03-10_add_estimates.sql` |
 
 ## Design System
 

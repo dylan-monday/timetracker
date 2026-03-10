@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CalendarRange, ChartColumn, Shield } from "lucide-react";
+import { CalendarRange, ChartColumn, Coins, Shield } from "lucide-react";
 import { clsx } from "clsx";
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
@@ -19,6 +19,7 @@ interface AppShellProps {
 const navItems: Array<{ href: string; label: string; icon: typeof CalendarRange; sound: SoundName }> = [
   { href: "/week", label: "Week", icon: CalendarRange, sound: "navWeek" },
   { href: "/trends", label: "Trends", icon: ChartColumn, sound: "navTrends" },
+  { href: "/estimates", label: "Estimates", icon: Coins, sound: "navEstimates" },
   { href: "/admin", label: "Settings", icon: Shield, sound: "navSettings" }
 ];
 

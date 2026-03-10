@@ -90,3 +90,99 @@ export interface CalendarFeedSource {
   feedUrl: string;
   active: boolean;
 }
+
+// ─────────────────────────────────────────────────────────────────
+// Estimates
+// ─────────────────────────────────────────────────────────────────
+
+export type EstimateStatus = "draft" | "live" | "archived";
+
+export interface AgencyRole {
+  id: string;
+  name: string;
+  defaultHourlyRateCents: number;
+  sortOrder: number;
+}
+
+export interface EstimateLineItem {
+  id: string;
+  phaseId: string;
+  roleName: string;
+  personName: string | null;
+  personId: string | null;
+  hours: number;
+  hourlyRateCents: number;
+  sortOrder: number;
+}
+
+export interface EstimatePhase {
+  id: string;
+  estimateId: string;
+  name: string;
+  sortOrder: number;
+  lineItems: EstimateLineItem[];
+}
+
+export interface EstimateHardCost {
+  id: string;
+  estimateId: string;
+  description: string;
+  amountCents: number;
+  sortOrder: number;
+}
+
+export interface Estimate {
+  id: string;
+  ownerId: string;
+  name: string;
+  status: EstimateStatus;
+  projectId: string | null;
+  markupPercent: number;
+  contingencyPercent: number;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  // Nested data (populated when fetching full estimate)
+  phases?: EstimatePhase[];
+  hardCosts?: EstimateHardCost[];
+  // Joined data
+  project?: {
+    id: string;
+    name: string;
+    clientName: string;
+  } | null;
+}
+
+export interface EstimateListItem {
+  id: string;
+  name: string;
+  status: EstimateStatus;
+  projectId: string | null;
+  projectName: string | null;
+  clientName: string | null;
+  createdAt: string;
+  updatedAt: string;
+  // Computed totals
+  phaseCount: number;
+  totalCents: number;
+}
+
+export interface EstimateCalculation {
+  laborSubtotalCents: number;
+  markupCents: number;
+  laborWithMarkupCents: number;
+  contingencyCents: number;
+  laborPlusContingencyCents: number;
+  hardCostsTotalCents: number;
+  projectTotalCents: number;
+  totalEstimatedHours: number;
+}
+
+// Default phase names for new estimates
+export const DEFAULT_PHASE_NAMES = [
+  "Immersion",
+  "Concept Development",
+  "Creative Development",
+  "Production",
+  "Post Production",
+] as const;

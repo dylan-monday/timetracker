@@ -157,6 +157,9 @@ export const sounds = {
   // Navigation: Settings - neutral, practical
   navSettings: () => playBell({ frequency: 175, duration: 1.8, volume: 0.07, warmth: 0.4 }), // F3
 
+  // Navigation: Estimates - aspirational, forward-looking (planning work)
+  navEstimates: () => playBell({ frequency: 233, duration: 2.3, volume: 0.09, warmth: 0.65 }), // Bb3
+
   // Deep resonant bell - for adding new items
   add: () => playBell({ frequency: 175, duration: 3.0, volume: 0.11, warmth: 0.8 }), // F3
 
