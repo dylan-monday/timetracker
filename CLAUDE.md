@@ -193,12 +193,98 @@ CRON_SECRET
 
 ## To-Do
 
-- [ ] **Standardize styles/stylesheet across all pages** - Input styling, spacing, borders should be consistent (timesheet uses `border-black/15 bg-canvas`, estimates now matches)
-- [ ] Extract common input styles to shared component or Tailwind @apply classes
+### Technical Debt
+- [ ] **Standardize styles/stylesheet across all pages** - Extract common input styles to shared component or Tailwind @apply classes
 - [ ] Add archive functionality for live estimates
-- [ ] Budget sync: When estimate goes live, sync role/hours budget to project (not total estimate amount)
+- [ ] Split `week-grid.tsx` (~1500 lines) into smaller components
+
+### Human Experience (Priority)
+- [ ] **Make it more rewarding to use** - Think deeply about the emotional experience of tracking time
+- [ ] Celebration moments - What happens when you complete a week? Hit a milestone?
+- [ ] Gentle encouragement - How does the app respond when tracking is sparse?
+- [ ] Meaningful summaries - Not just numbers, but insights that feel valuable
+- [ ] Consider weekly rituals - What makes the end-of-week feel like closure?
+- [ ] Sound design refinement - Are the current bells satisfying? What else could benefit from audio feedback?
+
+### Future Features
+- [ ] Weekly reflection prompts tied to actual data
+- [ ] Goal tracking against time ("I want 20% on personal development")
+- [ ] Per-role budget tracking (not just total project hours)
+
+---
+
+## Session Notes: March 10, 2026
+
+### What We Built Today
+
+**Budget Check Overhaul**
+- Changed from period-filtered to **all-time hours tracking** (fixed LED Recruiting bug)
+- Added **per-person breakdown** showing each person's hours, value, and percentage
+- Made Budget Check **admin-only** (hidden for non-admin users)
+- **Hours-based display**: Budget XXh → Xh logged (X%) → Xh left
+- Red progress bar when over budget
+- Fallback to estimate data for projects created before budget sync code
+
+**Estimate → Project Budget Sync**
+- When estimate goes live, project now gets both `budget_cents` AND `hourly_rate_cents`
+- Hourly rate calculated as blended rate: `laborPlusContingencyCents / totalEstimatedHours`
+- Projects linked to estimates now appear in Budget Check even without direct budget_cents
+
+**UI Polish**
+- Estimate form inputs now use **hover-visible borders** (matches timesheet aesthetic)
+- Cleaner, less cluttered look when not actively editing
+
+### Challenges Encountered
+
+1. **Budget Check wasn't showing live estimates** - The query filtered for `budget_cents > 0`, but projects created before the sync code didn't have budgets set. Fixed by also fetching live estimates and calculating budget from estimate data.
+
+2. **Thinking through what Budget Check should actually show** - Required stepping back to clarify: hours vs dollars, per-person vs total, current period vs all-time. The conversation led to a clearer design.
+
+3. **Data model gaps** - Per-person hour budgets aren't stored when estimate goes live. Currently only total budget syncs. Role-level tracking would require storing more estimate data on the project.
+
+### Key Learnings
+
+- **Budget tracking is hours-first, dollars-second** for time tracking purposes. You control hours; dollars are the outcome.
+- **All-time vs period tracking** serves different purposes. Budget tracking needs cumulative view; period analytics need filtered view.
+- **Linked estimates provide fallback data** - Don't just sync at go-live; use the estimate as a source of truth when project data is incomplete.
+
+### Design Decisions Made
+
+| Decision | Rationale |
+|----------|-----------|
+| Budget Check is admin-only | Standard users shouldn't see budget burn rates |
+| All-time hours for budget | Budgets don't reset per period |
+| Calculate budget from estimate if not on project | Backward compatibility for existing data |
+| Hover-visible inputs on estimates | Matches timesheet, reduces visual clutter |
+
+### What's Next: The Human Side
+
+The mechanics work. Now the question is: **how do we make this feel good to use?**
+
+Ideas to explore:
+- **Completion sounds** - What plays when you finish a day? A week?
+- **Milestone moments** - "You've logged 1,000 hours this year"
+- **Gentle nudges** - Empty timesheets shouldn't feel punishing
+- **Visual rewards** - Can the ambient background respond to your tracking?
+- **Weekly ritual** - What makes Friday afternoon feel like closure?
+- **Gratitude** - The app should feel like it appreciates your attention
+
+The goal: transform time tracking from obligation to self-care ritual.
+
+---
 
 ## Recent Changes (March 2026)
+
+### Budget Check Overhaul (March 10)
+- All-time hours tracking (not period-filtered)
+- Per-person breakdown with hours, value, and percentage
+- Admin-only visibility
+- Hours-based display with value invested
+- Fallback to estimate calculations for backward compatibility
+
+### Estimate → Project Sync (March 10)
+- Go Live now sets `budget_cents` AND `hourly_rate_cents` on project
+- Blended hourly rate calculated from estimate labor costs / hours
 
 ### Estimates Feature - Complete Implementation
 - **Database**: Added `estimates`, `estimate_phases`, `estimate_line_items`, `estimate_hard_costs`, `agency_roles` tables
@@ -211,16 +297,18 @@ CRON_SECRET
 - Person field uses ComboBox pulling from profiles table (auto-fills rate)
 - All number inputs use monospace font (IBM Plex Mono)
 - Hours/rate columns are compact, more space for role/person
-- Input styling matches timesheet exactly (`border-black/15 bg-canvas rounded-lg`)
+- Hover-visible input borders (matches timesheet aesthetic)
 - Auto-save on name and client fields (no manual Save click needed)
 - New estimates start blank (no default phases, empty name)
 
 ### Sounds
 - Added `openEstimate` sound (Eb4 / 311 Hz) - plays when clicking an estimate card
 - Added `navEstimates` sound (Bb3 / 233 Hz) - plays on nav to estimates
+- Added `timeEntry` sound with ±1.5 semitone variation for organic feel
 
 ### Bug Fixes
 - Fixed markup/contingency not persisting when set to 0 (was treating 0 as falsy)
+- Fixed Budget Check not showing projects from older estimates
 
 ## Where This Can Go
 
