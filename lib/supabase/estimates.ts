@@ -8,6 +8,7 @@ import type {
   EstimateListItem,
   EstimatePhase,
   EstimateStatus,
+  ProfileOption,
   DEFAULT_PHASE_NAMES,
 } from "@/lib/types";
 
@@ -70,6 +71,38 @@ export async function upsertAgencyRole(
     defaultHourlyRateCents: data.default_hourly_rate_cents,
     sortOrder: data.sort_order,
   };
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Profiles (for person picker)
+// ─────────────────────────────────────────────────────────────────
+
+function extractDisplayName(email: string): string {
+  // Extract name from email like "dylan@mondayandpartners.com" -> "Dylan"
+  const localPart = email.split("@")[0];
+  // Handle formats like "dylan.smith" or "dylan_smith"
+  const parts = localPart.split(/[._-]/);
+  return parts
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
+}
+
+export async function fetchProfiles(
+  supabase: SupabaseClient
+): Promise<ProfileOption[]> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id,email,hourly_rate_cents")
+    .order("email", { ascending: true });
+
+  if (error) throw error;
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    email: row.email,
+    displayName: extractDisplayName(row.email),
+    hourlyRateCents: row.hourly_rate_cents ?? 0,
+  }));
 }
 
 // ─────────────────────────────────────────────────────────────────

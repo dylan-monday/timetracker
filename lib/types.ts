@@ -91,6 +91,13 @@ export interface CalendarFeedSource {
   active: boolean;
 }
 
+export interface ProfileOption {
+  id: string;
+  email: string;
+  displayName: string;
+  hourlyRateCents: number;
+}
+
 // ─────────────────────────────────────────────────────────────────
 // Estimates
 // ─────────────────────────────────────────────────────────────────

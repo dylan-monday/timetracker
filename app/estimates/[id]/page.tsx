@@ -17,6 +17,7 @@ import { ComboBox } from "@/components/combobox";
 import {
   fetchEstimate,
   fetchAgencyRoles,
+  fetchProfiles,
   fetchEstimateTracking,
   updateEstimate,
   deleteEstimate,
@@ -43,6 +44,7 @@ import type {
   EstimateLineItem,
   EstimatePhase,
   EstimateStatus,
+  ProfileOption,
   ProjectOption,
 } from "@/lib/types";
 
@@ -104,6 +106,7 @@ export default function EstimateBuilderPage() {
 
   const [estimate, setEstimate] = useState<Estimate | null>(null);
   const [agencyRoles, setAgencyRoles] = useState<AgencyRole[]>([]);
+  const [profiles, setProfiles] = useState<ProfileOption[]>([]);
   const [clients, setClients] = useState<ClientOption[]>([]);
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [tracking, setTracking] = useState<{
@@ -137,9 +140,10 @@ export default function EstimateBuilderPage() {
       // Ensure default agency roles exist
       await ensureDefaultAgencyRoles(supabase, user.id);
 
-      const [est, roles, { clients: cli, projects: proj }] = await Promise.all([
+      const [est, roles, profs, { clients: cli, projects: proj }] = await Promise.all([
         fetchEstimate(supabase, estimateId),
         fetchAgencyRoles(supabase),
+        fetchProfiles(supabase),
         fetchClientsAndProjects(supabase),
       ]);
 
@@ -151,6 +155,7 @@ export default function EstimateBuilderPage() {
 
       setEstimate(est);
       setAgencyRoles(roles);
+      setProfiles(profs);
       setClients(cli);
       setProjects(proj);
 
@@ -498,12 +503,38 @@ export default function EstimateBuilderPage() {
     [agencyRoles]
   );
 
+  // Person options for combobox
+  const personOptions = useMemo(
+    () =>
+      profiles.map((profile) => ({
+        id: profile.id,
+        label: profile.displayName,
+      })),
+    [profiles]
+  );
+
   // Get default rate for a role name
   const getRoleDefaultRate = (roleName: string): number => {
     const role = agencyRoles.find(
       (r) => r.name.toLowerCase() === roleName.toLowerCase()
     );
     return role?.defaultHourlyRateCents ?? 0;
+  };
+
+  // Get rate for a person by their display name
+  const getPersonRate = (personName: string): number => {
+    const profile = profiles.find(
+      (p) => p.displayName.toLowerCase() === personName.toLowerCase()
+    );
+    return profile?.hourlyRateCents ?? 0;
+  };
+
+  // Get person ID by their display name
+  const getPersonId = (personName: string): string | null => {
+    const profile = profiles.find(
+      (p) => p.displayName.toLowerCase() === personName.toLowerCase()
+    );
+    return profile?.id ?? null;
   };
 
   if (loading) {
@@ -678,7 +709,10 @@ export default function EstimateBuilderPage() {
                       handleDeleteLineItem(phase.id, itemId)
                     }
                     roleOptions={roleOptions}
+                    personOptions={personOptions}
                     getRoleDefaultRate={getRoleDefaultRate}
+                    getPersonRate={getPersonRate}
+                    getPersonId={getPersonId}
                   />
                 ))}
               </div>
@@ -853,7 +887,10 @@ function PhaseCard({
   onUpdateLineItem,
   onDeleteLineItem,
   roleOptions,
+  personOptions,
   getRoleDefaultRate,
+  getPersonRate,
+  getPersonId,
 }: {
   phase: EstimatePhase;
   expanded: boolean;
@@ -864,7 +901,10 @@ function PhaseCard({
   onUpdateLineItem: (itemId: string, updates: Partial<EstimateLineItem>) => void;
   onDeleteLineItem: (itemId: string) => void;
   roleOptions: { id: string; label: string }[];
+  personOptions: { id: string; label: string }[];
   getRoleDefaultRate: (roleName: string) => number;
+  getPersonRate: (personName: string) => number;
+  getPersonId: (personName: string) => string | null;
 }) {
   const [nameValue, setNameValue] = useState(phase.name);
 
@@ -941,7 +981,10 @@ function PhaseCard({
                 onUpdate={(updates) => onUpdateLineItem(item.id, updates)}
                 onDelete={() => onDeleteLineItem(item.id)}
                 roleOptions={roleOptions}
+                personOptions={personOptions}
                 getRoleDefaultRate={getRoleDefaultRate}
+                getPersonRate={getPersonRate}
+                getPersonId={getPersonId}
               />
             ))}
           </div>
@@ -971,13 +1014,19 @@ function LineItemRow({
   onUpdate,
   onDelete,
   roleOptions,
+  personOptions,
   getRoleDefaultRate,
+  getPersonRate,
+  getPersonId,
 }: {
   item: EstimateLineItem;
   onUpdate: (updates: Partial<EstimateLineItem>) => void;
   onDelete: () => void;
   roleOptions: { id: string; label: string }[];
+  personOptions: { id: string; label: string }[];
   getRoleDefaultRate: (roleName: string) => number;
+  getPersonRate: (personName: string) => number;
+  getPersonId: (personName: string) => string | null;
 }) {
   const [roleName, setRoleName] = useState(item.roleName);
   const [personName, setPersonName] = useState(item.personName ?? "");
@@ -1006,6 +1055,30 @@ function LineItemRow({
     onUpdate({ roleName: newRole });
   };
 
+  // Handle person selection - auto-fill rate if empty and person has a rate
+  const handlePersonChange = (newPerson: string) => {
+    setPersonName(newPerson);
+
+    const personId = getPersonId(newPerson);
+    const personRate = getPersonRate(newPerson);
+
+    // If rate is empty or zero, auto-fill from person's rate
+    if ((!rate || parseFloat(rate) === 0) && personRate > 0) {
+      setRate(formatDollarsInput(personRate));
+      onUpdate({
+        personName: newPerson || null,
+        personId,
+        hourlyRateCents: personRate,
+      });
+      return;
+    }
+
+    onUpdate({
+      personName: newPerson || null,
+      personId,
+    });
+  };
+
   return (
     <div className="grid grid-cols-12 items-center gap-2 px-4 py-2">
       {/* Role */}
@@ -1022,13 +1095,12 @@ function LineItemRow({
 
       {/* Person */}
       <div className="col-span-3">
-        <input
-          type="text"
+        <ComboBox
+          options={personOptions}
           value={personName}
-          onChange={(e) => setPersonName(e.target.value)}
-          onBlur={() => onUpdate({ personName: personName || null })}
+          onChange={handlePersonChange}
           placeholder="Optional..."
-          className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm placeholder:text-muted/50 focus:border-black/30 focus:outline-none"
+          allowCreate={false}
         />
       </div>
 
