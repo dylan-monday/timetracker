@@ -1144,7 +1144,7 @@ function LineItemRow({
           onChange={(e) => setHours(e.target.value)}
           onBlur={() => onUpdate({ hours: parseHours(hours) })}
           placeholder="0"
-          className="w-full rounded-lg border border-black/15 bg-canvas px-2 py-1.5 text-right font-mono text-sm focus:border-black/30 focus:outline-none"
+          className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1.5 text-right font-mono text-sm hover:border-black/10 hover:bg-canvas focus:border-black/30 focus:bg-canvas focus:outline-none"
         />
       </div>
 
@@ -1160,7 +1160,7 @@ function LineItemRow({
             onChange={(e) => setRate(e.target.value)}
             onBlur={() => onUpdate({ hourlyRateCents: parseDollars(rate) })}
             placeholder="0"
-            className="w-full rounded-lg border border-black/15 bg-canvas py-1.5 pl-5 pr-2 text-right font-mono text-sm focus:border-black/30 focus:outline-none"
+            className="w-full rounded-lg border border-transparent bg-transparent py-1.5 pl-5 pr-2 text-right font-mono text-sm hover:border-black/10 hover:bg-canvas focus:border-black/30 focus:bg-canvas focus:outline-none"
           />
         </div>
       </div>
@@ -1203,7 +1203,7 @@ function HardCostRow({
         onChange={(e) => setDescription(e.target.value)}
         onBlur={() => onUpdate({ description })}
         placeholder="Description..."
-        className="flex-1 rounded-lg border border-black/15 bg-canvas px-2 py-1.5 text-sm focus:border-black/30 focus:outline-none"
+        className="flex-1 rounded-lg border border-transparent bg-transparent px-2 py-1.5 text-sm hover:border-black/10 hover:bg-canvas focus:border-black/30 focus:bg-canvas focus:outline-none"
       />
 
       <div className="relative w-28">
@@ -1216,7 +1216,7 @@ function HardCostRow({
           onChange={(e) => setAmount(e.target.value)}
           onBlur={() => onUpdate({ amountCents: parseDollars(amount) })}
           placeholder="0"
-          className="w-full rounded-lg border border-black/15 bg-canvas py-1.5 pl-5 pr-2 text-right font-mono text-sm focus:border-black/30 focus:outline-none"
+          className="w-full rounded-lg border border-transparent bg-transparent py-1.5 pl-5 pr-2 text-right font-mono text-sm hover:border-black/10 hover:bg-canvas focus:border-black/30 focus:bg-canvas focus:outline-none"
         />
       </div>
 

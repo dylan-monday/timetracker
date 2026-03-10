@@ -350,41 +350,105 @@ export default function TrendsPage() {
           .select("rounded_minutes,project_id,owner_id,projects(id,name,budget_cents,hourly_rate_cents,clients(name,kind,hourly_rate_cents)),profiles(email)")
           .eq("status", "approved");
 
+        // Also fetch live estimates to get budget info for projects without budget_cents
+        const { data: liveEstimates } = await supabase
+          .from("estimates")
+          .select(`
+            id,
+            project_id,
+            markup_percent,
+            contingency_percent,
+            estimate_phases(
+              estimate_line_items(hours,hourly_rate_cents)
+            ),
+            estimate_hard_costs(amount_cents)
+          `)
+          .eq("status", "live")
+          .not("project_id", "is", null);
+
+        // Build a map of project_id -> calculated budget from estimates
+        const estimateBudgets = new Map<string, { budgetCents: number; hourlyRateCents: number }>();
+        for (const est of liveEstimates ?? []) {
+          if (!est.project_id) continue;
+
+          // Calculate labor subtotal
+          let laborCents = 0;
+          let totalHours = 0;
+          for (const phase of est.estimate_phases ?? []) {
+            for (const item of phase.estimate_line_items ?? []) {
+              const hours = Number(item.hours) || 0;
+              const rate = item.hourly_rate_cents || 0;
+              laborCents += hours * rate;
+              totalHours += hours;
+            }
+          }
+
+          // Apply markup and contingency
+          const markupPct = Number(est.markup_percent) || 0;
+          const contingencyPct = Number(est.contingency_percent) || 0;
+          const laborWithMarkup = laborCents * (1 + markupPct / 100);
+          const laborPlusContingency = laborWithMarkup * (1 + contingencyPct / 100);
+
+          // Add hard costs
+          let hardCosts = 0;
+          for (const cost of est.estimate_hard_costs ?? []) {
+            hardCosts += cost.amount_cents || 0;
+          }
+
+          const budgetCents = Math.round(laborPlusContingency + hardCosts);
+          const hourlyRateCents = totalHours > 0 ? Math.round(laborPlusContingency / totalHours) : 0;
+
+          estimateBudgets.set(est.project_id, { budgetCents, hourlyRateCents });
+        }
+
         // Build per-project, per-person aggregations
         const budgetProjects = new Map<string, BudgetProjectRow>();
         for (const row of budgetData ?? []) {
           const project = row.projects as { id?: string; name?: string; budget_cents?: number | null; hourly_rate_cents?: number | null; clients?: { name?: string; kind?: string; hourly_rate_cents?: number | null } } | null;
           const profile = row.profiles as { email?: string } | null;
-          if (project?.id && project?.budget_cents && project.budget_cents > 0) {
-            const existing = budgetProjects.get(project.id) ?? {
-              projectId: project.id,
-              projectName: project.name ?? "Untitled",
-              clientName: project.clients?.name ?? "Client",
-              clientKind: project.clients?.kind ?? null,
-              budgetCents: project.budget_cents,
-              hourlyRateCents: project.hourly_rate_cents ?? null,
-              clientHourlyRateCents: project.clients?.hourly_rate_cents ?? null,
-              totalMinutes: 0,
-              people: []
-            };
+          if (!project?.id) continue;
 
-            const minutes = row.rounded_minutes ?? 0;
-            existing.totalMinutes += minutes;
+          // Get budget from project OR from linked estimate
+          const projectBudget = project.budget_cents && project.budget_cents > 0 ? project.budget_cents : null;
+          const estimateBudget = estimateBudgets.get(project.id);
+          const budgetCents = projectBudget ?? estimateBudget?.budgetCents ?? null;
 
-            // Find or create person entry
-            const personId = row.owner_id ?? "unknown";
-            const personName = profile?.email
-              ? profile.email.split("@")[0].charAt(0).toUpperCase() + profile.email.split("@")[0].slice(1)
-              : "Unknown";
-            let person = existing.people.find(p => p.personId === personId);
-            if (!person) {
-              person = { personId, personName, minutes: 0 };
-              existing.people.push(person);
-            }
-            person.minutes += minutes;
+          // Skip projects with no budget from either source
+          if (!budgetCents || budgetCents <= 0) continue;
 
-            budgetProjects.set(project.id, existing);
+          // Get hourly rate from project, estimate, or client
+          const projectRate = project.hourly_rate_cents && project.hourly_rate_cents > 0 ? project.hourly_rate_cents : null;
+          const estimateRate = estimateBudget?.hourlyRateCents && estimateBudget.hourlyRateCents > 0 ? estimateBudget.hourlyRateCents : null;
+          const effectiveRate = projectRate ?? estimateRate ?? null;
+
+          const existing = budgetProjects.get(project.id) ?? {
+            projectId: project.id,
+            projectName: project.name ?? "Untitled",
+            clientName: project.clients?.name ?? "Client",
+            clientKind: project.clients?.kind ?? null,
+            budgetCents,
+            hourlyRateCents: effectiveRate,
+            clientHourlyRateCents: project.clients?.hourly_rate_cents ?? null,
+            totalMinutes: 0,
+            people: []
+          };
+
+          const minutes = row.rounded_minutes ?? 0;
+          existing.totalMinutes += minutes;
+
+          // Find or create person entry
+          const personId = row.owner_id ?? "unknown";
+          const personName = profile?.email
+            ? profile.email.split("@")[0].charAt(0).toUpperCase() + profile.email.split("@")[0].slice(1)
+            : "Unknown";
+          let person = existing.people.find(p => p.personId === personId);
+          if (!person) {
+            person = { personId, personName, minutes: 0 };
+            existing.people.push(person);
           }
+          person.minutes += minutes;
+
+          budgetProjects.set(project.id, existing);
         }
 
         if (mounted) {
