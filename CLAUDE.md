@@ -118,7 +118,12 @@ Web Audio API synthesized bells (no audio files). Source: `lib/sounds.ts`
 
 - Warm, Frosti-inspired crystalline tones
 - Detuned oscillator pairs for organic shimmer
-- Distinct pitches per nav destination (Week=G3, Trends=C4, Settings=F3)
+- Distinct pitches per nav destination:
+  - Week: G3 (196 Hz) - grounded, present
+  - Trends: C4 (262 Hz) - reflective
+  - Settings: F3 (175 Hz) - neutral
+  - Estimates: Bb3 (233 Hz) - aspirational
+  - Open Estimate: Eb4 (311 Hz) - anticipatory
 - Desktop only (mobile AudioContext restrictions too unreliable)
 
 ## Data Model (Supabase)
@@ -185,6 +190,37 @@ CRON_SECRET
 - N+1 query pattern in `lib/server/time-report.ts` (email reports) - acceptable for single user
 - Calendar drafts: unmapped events are skipped during sync, not forced to be mapped or rejected
 - "Copy last week" button exists in UI but is not wired up
+
+## To-Do
+
+- [ ] **Standardize styles/stylesheet across all pages** - Input styling, spacing, borders should be consistent (timesheet uses `border-black/15 bg-canvas`, estimates now matches)
+- [ ] Extract common input styles to shared component or Tailwind @apply classes
+- [ ] Add archive functionality for live estimates
+- [ ] Budget sync: When estimate goes live, sync role/hours budget to project (not total estimate amount)
+
+## Recent Changes (March 2026)
+
+### Estimates Feature - Complete Implementation
+- **Database**: Added `estimates`, `estimate_phases`, `estimate_line_items`, `estimate_hard_costs`, `agency_roles` tables
+- **Client relationship**: Estimates tied to clients (not projects) since these are new work
+- **Go Live flow**: Creates project automatically when estimate status → live
+- **Tracking**: Owner can see actual hours vs estimated hours for live estimates
+
+### Estimates UI Polish
+- Phase names use ComboBox with preset options (Immersion, Concept Development, etc.)
+- Person field uses ComboBox pulling from profiles table (auto-fills rate)
+- All number inputs use monospace font (IBM Plex Mono)
+- Hours/rate columns are compact, more space for role/person
+- Input styling matches timesheet exactly (`border-black/15 bg-canvas rounded-lg`)
+- Auto-save on name and client fields (no manual Save click needed)
+- New estimates start blank (no default phases, empty name)
+
+### Sounds
+- Added `openEstimate` sound (Eb4 / 311 Hz) - plays when clicking an estimate card
+- Added `navEstimates` sound (Bb3 / 233 Hz) - plays on nav to estimates
+
+### Bug Fixes
+- Fixed markup/contingency not persisting when set to 0 (was treating 0 as falsy)
 
 ## Where This Can Go
 
