@@ -593,7 +593,12 @@ export default function EstimateBuilderPage() {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Estimate name..."
+                  onBlur={async () => {
+                    if (name !== estimate.name && supabase) {
+                      await updateEstimate(supabase, estimate.id, { name });
+                    }
+                  }}
+                  placeholder="Project name..."
                   disabled={status === "live"}
                   className="w-full border-0 bg-transparent text-2xl font-display tracking-tight text-ink placeholder:text-muted/50 focus:outline-none disabled:cursor-not-allowed"
                 />
@@ -601,7 +606,13 @@ export default function EstimateBuilderPage() {
                   {/* Client selector */}
                   <select
                     value={clientId ?? ""}
-                    onChange={(e) => setClientId(e.target.value || null)}
+                    onChange={async (e) => {
+                      const newClientId = e.target.value || null;
+                      setClientId(newClientId);
+                      if (supabase) {
+                        await updateEstimate(supabase, estimate.id, { clientId: newClientId });
+                      }
+                    }}
                     disabled={status === "live"}
                     className="rounded-lg border border-black/10 bg-white px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
                   >

@@ -6,7 +6,7 @@ import { Plus, FileText, ArrowRight } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/components/auth-provider";
 import { fetchEstimatesList, createEstimate } from "@/lib/supabase/estimates";
-import { DEFAULT_PHASE_NAMES, type EstimateListItem, type EstimateStatus } from "@/lib/types";
+import type { EstimateListItem, EstimateStatus } from "@/lib/types";
 import { getContextualGreeting, extractFirstName } from "@/lib/greeting";
 
 function formatCents(cents: number): string {
@@ -89,9 +89,9 @@ export default function EstimatesPage() {
       const estimateId = await createEstimate(
         supabase,
         user.id,
-        "New Estimate",
-        null, // clientId - selected later
-        DEFAULT_PHASE_NAMES
+        "", // Empty name - user fills in
+        null // clientId - selected later
+        // No default phases - start blank
       );
       router.push(`/estimates/${estimateId}`);
     } catch (err) {
