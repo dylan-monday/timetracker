@@ -564,7 +564,7 @@ export function WeekGrid({ weekStart, onWeekChange }: WeekGridProps) {
 
       // Show saved confirmation briefly
       setSavedCell(cellToSave);
-      playSound("save");
+      playSound("timeEntry");
       setTimeout(() => {
         setSavedCell((current) =>
           current?.lineId === cellToSave.lineId && current?.dayIndex === cellToSave.dayIndex

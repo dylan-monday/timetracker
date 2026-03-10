@@ -290,8 +290,9 @@ export default function EstimateBuilderPage() {
         notes: notes || null,
       });
 
-      // Create project and go live
-      await createProjectFromEstimate(supabase, user.id, estimate.id, name, clientId);
+      // Create project and go live (with budget from estimate total)
+      const budgetCents = calculation?.projectTotalCents ?? 0;
+      await createProjectFromEstimate(supabase, user.id, estimate.id, name, clientId, budgetCents);
 
       // Refresh to get updated state
       await refresh();

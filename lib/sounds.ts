@@ -139,11 +139,28 @@ function playBell(options: BellOptions = {}): void {
   }
 }
 
+// Helper to pick a random frequency within a semitone range
+function randomFrequency(base: number, semitones: number = 1): number {
+  // Each semitone is a factor of 2^(1/12) ≈ 1.0595
+  const factor = Math.pow(2, 1/12);
+  const min = base / Math.pow(factor, semitones);
+  const max = base * Math.pow(factor, semitones);
+  return min + Math.random() * (max - min);
+}
+
 // Preset sounds for different interactions
 // Lower pitches, warmer character
 export const sounds = {
   // Warm mid bell - for successful saves, confirmations
   save: () => playBell({ frequency: 294, duration: 2.5, volume: 0.10, warmth: 0.7 }), // D4
+
+  // Time entry - like save but with slight pitch variation for organic feel
+  timeEntry: () => playBell({
+    frequency: randomFrequency(294, 1.5), // D4 ±1.5 semitones
+    duration: 2.5,
+    volume: 0.10,
+    warmth: 0.7
+  }),
 
   // Soft low bell - generic navigation/selections
   navigate: () => playBell({ frequency: 220, duration: 2.0, volume: 0.08, warmth: 0.5 }), // A3
