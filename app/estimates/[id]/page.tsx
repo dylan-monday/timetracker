@@ -290,9 +290,13 @@ export default function EstimateBuilderPage() {
         notes: notes || null,
       });
 
-      // Create project and go live (with budget from estimate total)
+      // Create project and go live (with budget and blended rate from estimate)
       const budgetCents = calculation?.projectTotalCents ?? 0;
-      await createProjectFromEstimate(supabase, user.id, estimate.id, name, clientId, budgetCents);
+      const totalHours = calculation?.totalEstimatedHours ?? 0;
+      const laborCents = calculation?.laborPlusContingencyCents ?? 0;
+      // Blended hourly rate = labor (with markup/contingency) ÷ hours
+      const hourlyRateCents = totalHours > 0 ? Math.round(laborCents / totalHours) : 0;
+      await createProjectFromEstimate(supabase, user.id, estimate.id, name, clientId, budgetCents, hourlyRateCents);
 
       // Refresh to get updated state
       await refresh();

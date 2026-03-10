@@ -177,8 +177,27 @@ function Sparkline({ data, className = "" }: { data: number[]; className?: strin
   );
 }
 
+// Per-person breakdown for budget tracking
+interface BudgetPersonRow {
+  personId: string;
+  personName: string;
+  minutes: number;
+}
+
+interface BudgetProjectRow {
+  projectId: string;
+  projectName: string;
+  clientName: string;
+  clientKind: string | null;
+  budgetCents: number;
+  hourlyRateCents: number | null;
+  clientHourlyRateCents: number | null;
+  totalMinutes: number;
+  people: BudgetPersonRow[];
+}
+
 export default function TrendsPage() {
-  const { supabase } = useAuth();
+  const { supabase, user } = useAuth();
   const [range, setRange] = useState<RangeKey>("week");
   const [periodOffset, setPeriodOffset] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -189,10 +208,11 @@ export default function TrendsPage() {
   const [historicalTotals, setHistoricalTotals] = useState<PeriodTotals[]>([]);
   const [topClients, setTopClients] = useState<Array<{ name: string; minutes: number }>>([]);
   const [personalProjects, setPersonalProjects] = useState<Array<{ name: string; minutes: number }>>([]);
-  const [projectBudgetRows, setProjectBudgetRows] = useState<
-    Array<ProjectRow & { budgetCents: number }>
-  >([]);
+  const [projectBudgetRows, setProjectBudgetRows] = useState<BudgetProjectRow[]>([]);
   const [projectValueRows, setProjectValueRows] = useState<ProjectRow[]>([]);
+
+  // Admin check for budget section
+  const isAdmin = user?.email?.toLowerCase() === "dylan@mondayandpartners.com";
 
   // Fetch data for a specific period
   const fetchPeriodData = useCallback(async (
@@ -324,31 +344,45 @@ export default function TrendsPage() {
         }
         const historicalResults = await Promise.all(historicalPromises);
 
-        // Fetch budget data for current period
-        const startDate = getStartDateForPeriod(range, periodOffset);
-        const endDate = getEndDateForPeriod(range, periodOffset);
+        // Fetch ALL-TIME budget data (not period-filtered) with per-person breakdown
         const { data: budgetData } = await supabase
           .from("time_entries")
-          .select("rounded_minutes,project_id,projects(id,name,budget_cents,hourly_rate_cents,clients(name,kind,hourly_rate_cents))")
-          .eq("status", "approved")
-          .gte("entry_date", startDate)
-          .lte("entry_date", endDate);
+          .select("rounded_minutes,project_id,owner_id,projects(id,name,budget_cents,hourly_rate_cents,clients(name,kind,hourly_rate_cents)),profiles(email)")
+          .eq("status", "approved");
 
-        const budgetProjects = new Map<string, ProjectRow & { budgetCents: number }>();
+        // Build per-project, per-person aggregations
+        const budgetProjects = new Map<string, BudgetProjectRow>();
         for (const row of budgetData ?? []) {
           const project = row.projects as { id?: string; name?: string; budget_cents?: number | null; hourly_rate_cents?: number | null; clients?: { name?: string; kind?: string; hourly_rate_cents?: number | null } } | null;
+          const profile = row.profiles as { email?: string } | null;
           if (project?.id && project?.budget_cents && project.budget_cents > 0) {
             const existing = budgetProjects.get(project.id) ?? {
               projectId: project.id,
               projectName: project.name ?? "Untitled",
               clientName: project.clients?.name ?? "Client",
               clientKind: project.clients?.kind ?? null,
-              minutes: 0,
               budgetCents: project.budget_cents,
               hourlyRateCents: project.hourly_rate_cents ?? null,
-              clientHourlyRateCents: project.clients?.hourly_rate_cents ?? null
+              clientHourlyRateCents: project.clients?.hourly_rate_cents ?? null,
+              totalMinutes: 0,
+              people: []
             };
-            existing.minutes += row.rounded_minutes ?? 0;
+
+            const minutes = row.rounded_minutes ?? 0;
+            existing.totalMinutes += minutes;
+
+            // Find or create person entry
+            const personId = row.owner_id ?? "unknown";
+            const personName = profile?.email
+              ? profile.email.split("@")[0].charAt(0).toUpperCase() + profile.email.split("@")[0].slice(1)
+              : "Unknown";
+            let person = existing.people.find(p => p.personId === personId);
+            if (!person) {
+              person = { personId, personName, minutes: 0 };
+              existing.people.push(person);
+            }
+            person.minutes += minutes;
+
             budgetProjects.set(project.id, existing);
           }
         }
@@ -361,7 +395,7 @@ export default function TrendsPage() {
           setTopClients(current.topClients);
           setPersonalProjects(current.personalProjects);
           setProjectValueRows(current.projects);
-          setProjectBudgetRows(Array.from(budgetProjects.values()).sort((a, b) => b.minutes - a.minutes));
+          setProjectBudgetRows(Array.from(budgetProjects.values()).sort((a, b) => b.totalMinutes - a.totalMinutes));
         }
       } catch (err) {
         if (mounted) {
@@ -531,7 +565,7 @@ export default function TrendsPage() {
     });
   }, [hourlyRateCents, projectValueRows]);
 
-  // Budget rows
+  // Budget rows - hours-based calculations
   const budgetRows = useMemo(() => {
     return projectBudgetRows.map((row) => {
       const effectiveRateCents =
@@ -540,16 +574,35 @@ export default function TrendsPage() {
           : row.clientHourlyRateCents && row.clientHourlyRateCents > 0
             ? row.clientHourlyRateCents
             : hourlyRateCents;
-      const burnCents = Math.round((row.minutes / 60) * effectiveRateCents);
-      const remainingCents = row.budgetCents - burnCents;
-      const burnPct = row.budgetCents > 0 ? Math.min(100, Math.round((burnCents / row.budgetCents) * 100)) : 0;
+
+      // Calculate hours budget from dollars budget ÷ rate
+      const budgetHours = effectiveRateCents > 0 ? row.budgetCents / effectiveRateCents : 0;
+      const hoursUsed = row.totalMinutes / 60;
+      const hoursLeft = budgetHours - hoursUsed;
+      const hoursUsedPct = budgetHours > 0 ? Math.min(100, Math.round((hoursUsed / budgetHours) * 100)) : 0;
+
+      // Value invested = hours × rate
+      const investedCents = Math.round(hoursUsed * effectiveRateCents);
+      const remainingCents = row.budgetCents - investedCents;
+
+      // Per-person stats
+      const peopleWithStats = row.people.map(person => ({
+        ...person,
+        hours: person.minutes / 60,
+        valueCents: Math.round((person.minutes / 60) * effectiveRateCents),
+        percentOfTotal: row.totalMinutes > 0 ? Math.round((person.minutes / row.totalMinutes) * 100) : 0
+      })).sort((a, b) => b.minutes - a.minutes);
 
       return {
         ...row,
         effectiveRateCents,
-        burnCents,
+        budgetHours,
+        hoursUsed,
+        hoursLeft,
+        hoursUsedPct,
+        investedCents,
         remainingCents,
-        burnPct
+        peopleWithStats
       };
     });
   }, [hourlyRateCents, projectBudgetRows]);
@@ -679,43 +732,77 @@ export default function TrendsPage() {
         )}
       </section>
 
-      {/* Budget check */}
-      <section className="rounded-2xl border border-black/5 bg-panel p-4 shadow-soft">
-        <h2 className="text-base font-medium">Budget check</h2>
-        <p className="mt-1 text-sm text-muted">How active projects are tracking against budget.</p>
-        {budgetRows.length ? (
-          <div className="mt-3 grid gap-3 lg:grid-cols-2">
-            {budgetRows.map((row) => {
-              const category = getCategoryType(row.clientName, row.clientKind);
-              return (
-              <article key={row.projectId} className={`rounded-xl bg-white p-3 ${getCategoryBorderClass(category)}`}>
-                <p className="text-sm font-medium text-ink">{row.projectName}</p>
-                <p className="text-xs text-muted">{row.clientName}</p>
-                <div className="mt-2 flex items-center justify-between text-xs text-muted">
-                  <span>Budget {fmtMoney(row.budgetCents)}</span>
-                  <span>{(row.minutes / 60).toFixed(1)}h logged</span>
-                </div>
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-black/10">
-                  <div className="h-full bg-ink" style={{ width: `${Math.max(2, row.burnPct)}%` }} />
-                </div>
-                <div className="mt-2 flex items-center justify-between text-xs text-muted">
-                  <span>{fmtMoney(row.burnCents)} used ({row.burnPct}%)</span>
-                  <span>
+      {/* Budget check - Admin only */}
+      {isAdmin && (
+        <section className="rounded-2xl border border-black/5 bg-panel p-4 shadow-soft">
+          <h2 className="text-base font-medium">Budget check</h2>
+          <p className="mt-1 text-sm text-muted">All-time hours tracking against budget.</p>
+          {budgetRows.length ? (
+            <div className="mt-3 grid gap-3 lg:grid-cols-2">
+              {budgetRows.map((row) => {
+                const category = getCategoryType(row.clientName, row.clientKind);
+                return (
+                <article key={row.projectId} className={`rounded-xl bg-white p-3 ${getCategoryBorderClass(category)}`}>
+                  <p className="text-sm font-medium text-ink">{row.projectName}</p>
+                  <p className="text-xs text-muted">{row.clientName}</p>
+
+                  {/* Hours budget */}
+                  <div className="mt-2 text-xs text-muted">
+                    <span className="font-medium text-ink">Budget: {row.budgetHours.toFixed(1)}h</span>
+                    <span className="ml-2">({fmtMoney(row.budgetCents)})</span>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-black/10">
+                    <div
+                      className={`h-full ${row.hoursUsedPct > 100 ? "bg-red-500" : "bg-ink"}`}
+                      style={{ width: `${Math.min(100, Math.max(2, row.hoursUsedPct))}%` }}
+                    />
+                  </div>
+
+                  {/* Summary stats */}
+                  <div className="mt-2 flex items-center justify-between text-xs text-muted">
+                    <span>{row.hoursUsed.toFixed(1)}h logged ({row.hoursUsedPct}%)</span>
+                    <span>
+                      {row.hoursLeft >= 0
+                        ? `${row.hoursLeft.toFixed(1)}h left`
+                        : `${Math.abs(row.hoursLeft).toFixed(1)}h over`}
+                    </span>
+                  </div>
+                  <div className="mt-1 text-xs text-muted">
+                    {fmtMoney(row.investedCents)} invested
                     {row.remainingCents >= 0
-                      ? `${fmtMoney(row.remainingCents)} left`
-                      : `${fmtMoney(Math.abs(row.remainingCents))} over`}
-                  </span>
-                </div>
-              </article>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="mt-3 rounded-xl border border-dashed border-black/15 p-3 text-sm text-muted">
-            Set your hourly rate and project budgets in Settings to see budget tracking.
-          </div>
-        )}
-      </section>
+                      ? ` · ${fmtMoney(row.remainingCents)} remaining`
+                      : ` · ${fmtMoney(Math.abs(row.remainingCents))} over budget`}
+                  </div>
+
+                  {/* Per-person breakdown */}
+                  {row.peopleWithStats.length > 0 && (
+                    <div className="mt-3 border-t border-black/5 pt-2">
+                      <p className="text-[10px] font-medium uppercase tracking-wide text-muted/70">By person</p>
+                      <div className="mt-1 space-y-1">
+                        {row.peopleWithStats.map((person) => (
+                          <div key={person.personId} className="flex items-center justify-between text-xs">
+                            <span className="text-ink">{person.personName}</span>
+                            <span className="text-muted">
+                              {person.hours.toFixed(1)}h · {fmtMoney(person.valueCents)} ({person.percentOfTotal}%)
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </article>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="mt-3 rounded-xl border border-dashed border-black/15 p-3 text-sm text-muted">
+              Set your hourly rate and project budgets in Settings to see budget tracking.
+            </div>
+          )}
+        </section>
+      )}
     </AppShell>
   );
 }

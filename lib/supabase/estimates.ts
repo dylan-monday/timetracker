@@ -383,7 +383,7 @@ export async function deleteEstimate(
 /**
  * Creates a project from an estimate and links them.
  * Called when estimate status changes to "live".
- * Sets project budget to the estimate's total project value.
+ * Sets project budget and hourly rate from estimate calculations.
  */
 export async function createProjectFromEstimate(
   supabase: SupabaseClient,
@@ -391,9 +391,10 @@ export async function createProjectFromEstimate(
   estimateId: string,
   projectName: string,
   clientId: string,
-  budgetCents: number
+  budgetCents: number,
+  hourlyRateCents: number
 ): Promise<string> {
-  // Create the project with budget from estimate
+  // Create the project with budget and rate from estimate
   const { data: project, error: projectError } = await supabase
     .from("projects")
     .insert({
@@ -402,6 +403,7 @@ export async function createProjectFromEstimate(
       name: projectName,
       active: true,
       budget_cents: budgetCents > 0 ? budgetCents : null,
+      hourly_rate_cents: hourlyRateCents > 0 ? hourlyRateCents : null,
     })
     .select("id")
     .single();
